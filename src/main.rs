@@ -55,6 +55,7 @@ fn main() -> io::Result<()> {
 
     let blocks = comp::global_compare_lines(&args, &trimmed_lines);
     comp::print_blocks(&args, &blocks, &original_lines);
+    comp::print_ending_status(&args, &blocks);
 
     Ok(())
 }

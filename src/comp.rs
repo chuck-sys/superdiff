@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use crate::cli::Cli;
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Clone)]
@@ -17,6 +17,13 @@ impl Ord for Block {
 pub type BlockMap = HashMap<Block, Vec<usize>>;
 pub type ComparisonFn = Box<dyn Fn(&String, &String) -> bool>;
 
+const INSERTION_COST: usize = 1;
+const DELETION_COST: usize = 1;
+const SUBSTITUTION_COST: usize = 1;
+
+/**
+ * Print similar/duplicate code blocks.
+ */
 pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>) {
     let mut keys = blocks.keys().collect::<Vec<&Block>>();
     keys.sort();
@@ -36,19 +43,92 @@ pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>)
     }
 }
 
-pub fn levenshtein_distance(x: &String, y: &String) -> usize {
-    0
+pub fn print_ending_status(args: &Cli, blocks: &BlockMap) {
+    if args.verbose > 0 {
+        let num_duped_blocks = blocks.values()
+            .fold(0usize, |acc, item| acc + item.len());
+        let total_dupes = blocks.len() + num_duped_blocks;
+        println!("{} unique blocks with duplicates found, {} total duplicates",
+            blocks.len(),
+            total_dupes);
+    }
 }
 
+/**
+ * Compute the edit distance of 2 strings, with shortcut.
+ *
+ * Modified from wikipedia pseudocode for matrix approach (no recursion).
+ *
+ * For strings x and y with length m and n respectively, we create an m+1 by n+1 matrix
+ * (represented by 1d array) of costs where moving to the right constitutes as inserting a
+ * character from y; moving down constitutes as deleting a character from y; moving diagonally
+ * across constitutes as substituting a character from y into a.
+ *
+ * We stop computing if we find that nothing of our current row is under the threshold, in which
+ * case we would exit early.
+ *
+ * This algorithm runs at a time complexity of O(mn).
+ */
+pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
+    let (x, y): (Vec<char>, Vec<char>) = (x.chars().collect(), y.chars().collect());
+    let (m, n) = (x.len(), y.len());
+    let mut d = vec![0usize; (m + 1) * (n + 1)];
+    let size = m + 1;
+
+    for i in 1..(m + 1) {
+        d[i + 0 * size] = i;
+    }
+
+    for j in 1..(n + 1) {
+        d[0 + j * size] = j;
+    }
+
+    for j in 1..(n + 1) {
+        let mut has_changed_row = false;
+
+        for i in 1..(m + 1) {
+            let sub_cost = if x[i - 1] == y[j - 1] { 0 } else { SUBSTITUTION_COST };
+            d[i + j * size] = std::cmp::min(
+                d[(i - 1) + j * size] + INSERTION_COST,
+                std::cmp::min(
+                    d[i + (j - 1) * size] + DELETION_COST,
+                    d[(i - 1) + (j - 1) * size] + sub_cost));
+
+            if d[i + j * size] <= threshold {
+                has_changed_row = true;
+            }
+        }
+
+        // Guarantee to not pass the threshold check
+        if !has_changed_row {
+            return threshold + 1;
+        }
+    }
+
+    d[m + n * size]
+}
+
+/**
+ * Create a comparison function based on the given threshold.
+ *
+ * If the threshold is 0, we use string comparison. If not, we use Levenshtein distance.
+ */
 pub fn comparison_lambda(args: &Cli) -> ComparisonFn {
     let threshold = args.lev_threshold.clone();
     if threshold == 0 {
         Box::new(move |x, y| x == y)
     } else {
-        Box::new(move |x, y| levenshtein_distance(x, y) <= threshold)
+        Box::new(move |x, y| levenshtein_distance(x, y, threshold) <= threshold)
     }
 }
 
+/**
+ * Find block length of the code blocks.
+ *
+ * Stops comparison when we reach the end, or if the original index hits the occurrance index. This
+ * stops code blocks from "eating" the other code block (i.e. no nested overlapping blocks that are
+ * similar).
+ */
 pub fn get_block_length(
     original_index: usize,
     occurrance_index: usize,
@@ -77,6 +157,13 @@ pub fn get_block_length(
     }
 }
 
+/**
+ * Remove code blocks that appear multiple times.
+ *
+ * For instance, if we have 3 copies of a code block, there would be 2 keys that refer to it. The
+ * first one has 2 indices (pointing to the last 2 copies) and the second one has 1 index (pointing
+ * to the last copy). This function removes all of them except for the first instance of the key.
+ */
 pub fn remove_duplicate_blocks(blocks: BlockMap) -> BlockMap {
     let mut keys = blocks.keys().collect::<Vec<&Block>>();
     let mut ret = HashMap::new();
@@ -108,9 +195,16 @@ pub fn remove_duplicate_blocks(blocks: BlockMap) -> BlockMap {
     ret
 }
 
+/**
+ * Compare lines.
+ */
 pub fn global_compare_lines(args: &Cli, lines: &Vec<String>) -> BlockMap {
     let mut bm: BlockMap = HashMap::new();
     let bar = ProgressBar::new((lines.len() - 1).try_into().unwrap());
+    bar.set_style(
+        ProgressStyle::with_template(
+            "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}"
+            ).unwrap());
     let comp = comparison_lambda(args);
     let mut i = 0;
 
@@ -156,4 +250,29 @@ pub fn global_compare_lines(args: &Cli, lines: &Vec<String>) -> BlockMap {
     }
 
     remove_duplicate_blocks(bm)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::comp::levenshtein_distance;
+
+    #[test]
+    fn test_lev_distance() {
+        let test_data = [
+            ("kitten", "sitting", 3),
+            ("train", "shine", 4),
+            ("a", "aaa", 2),
+
+            ("arst", "zxcv", 4),
+        ];
+
+        for (x, y, ans) in test_data {
+            let dist = levenshtein_distance(&x.to_string(), &y.to_string(), ans + 1);
+            assert_eq!(
+                dist,
+                ans,
+                "levenshtein_distance({}, {}) = {}, expected {}",
+                x, y, dist, ans);
+        }
+    }
 }
