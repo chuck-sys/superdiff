@@ -8,3 +8,10 @@ edition = "2021"
 [dependencies]
 indicatif = "0.17.1"
 clap = { version = "4.0.15", features = ["derive"] }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "lev_early_escape"
+harness = false

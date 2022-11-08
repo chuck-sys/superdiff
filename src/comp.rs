@@ -67,6 +67,9 @@ pub fn print_ending_status(args: &Cli, blocks: &BlockMap) {
  * We stop computing if we find that nothing of our current row is under the threshold, in which
  * case we would exit early.
  *
+ * We can also stop computing if we know that the threshold is greater than m + n, which is the
+ * maximum.
+ *
  * This algorithm runs at a time complexity of O(mn).
  */
 pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
@@ -74,6 +77,10 @@ pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
     let (m, n) = (x.len(), y.len());
     let mut d = vec![0usize; (m + 1) * (n + 1)];
     let size = m + 1;
+
+    if threshold >= m + n {
+        return threshold;
+    }
 
     for i in 1..(m + 1) {
         d[i + 0 * size] = i;
@@ -256,23 +263,36 @@ pub fn global_compare_lines(args: &Cli, lines: &Vec<String>) -> BlockMap {
 mod tests {
     use crate::comp::levenshtein_distance;
 
+    macro_rules! check_lev {
+        ( $a:literal, $b:literal, $t:literal ) => {
+            {
+                check_lev!($a, $b, $t, $t);
+            }
+        };
+
+        ( $a:literal, $b:literal, $t:literal, $e:literal ) => {
+            {
+                let dist = levenshtein_distance(&$a.to_string(), &$b.to_string(), $t);
+                assert_eq!(
+                    dist,
+                    $e,
+                    "levenshtein_distance({}, {}, {}) = {}, expected {}",
+                    $a, $b, $t, dist, $e);
+            }
+        }
+    }
+
     #[test]
     fn test_lev_distance() {
-        let test_data = [
-            ("kitten", "sitting", 3),
-            ("train", "shine", 4),
-            ("a", "aaa", 2),
-
-            ("arst", "zxcv", 4),
-        ];
-
-        for (x, y, ans) in test_data {
-            let dist = levenshtein_distance(&x.to_string(), &y.to_string(), ans + 1);
-            assert_eq!(
-                dist,
-                ans,
-                "levenshtein_distance({}, {}) = {}, expected {}",
-                x, y, dist, ans);
-        }
+        // Normal use of function
+        check_lev!("kitten", "sitting", 3);
+        check_lev!("train", "shine", 4);
+        check_lev!("a", "aaa", 2);
+        // Maximum threshold
+        check_lev!("arst", "zxcv", 4);
+        // Short circuit at the end
+        check_lev!("ieanrstien", "            ", 5, 6);
+        // Short circuit at the start
+        check_lev!("arstarst", "zxcv", 100, 100);
     }
 }
