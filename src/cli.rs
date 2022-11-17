@@ -3,7 +3,7 @@ use clap::Parser;
 
 #[derive(Parser)]
 #[command(name = "superdiff")]
-#[command(version = "1.0.0")]
+#[command(version = "0.1.1")]
 #[command(about = "Find duplicate code blocks", long_about = None)]
 pub struct Cli {
     /// Levenshtein distance threshold (0 uses string comparison)

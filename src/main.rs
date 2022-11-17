@@ -38,12 +38,12 @@ fn print_arguments(args: &cli::Cli, lines: &Vec<String>) {
         println!("Standard input ({} lines)", lines.len());
     }
 
-    println!("Verbosity: {}", args.verbose);
-    println!("Comparison threshold: {} ({})",
+    println!("Verbosity (-v): {}", args.verbose);
+    println!("Comparison threshold (-t): {} ({})",
                 args.lev_threshold,
                 if args.lev_threshold > 0 { "Levenshtein distance" } else { "Strict equality" });
-    println!("Minimum length of first line before block consideration: {}", args.line_threshold);
-    println!("Minimum length of block before consideration: {}", args.block_threshold);
+    println!("Minimum length of first line before block consideration (-l): {}", args.line_threshold);
+    println!("Minimum length of block before consideration (-b): {}", args.block_threshold);
 }
 
 fn main() -> io::Result<()> {
