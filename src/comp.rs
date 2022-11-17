@@ -21,9 +21,7 @@ const INSERTION_COST: usize = 1;
 const DELETION_COST: usize = 1;
 const SUBSTITUTION_COST: usize = 1;
 
-/**
- * Print similar/duplicate code blocks.
- */
+/// Print similar/duplicate code blocks.
 pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>) {
     let mut keys = blocks.keys().collect::<Vec<&Block>>();
     keys.sort();
@@ -54,24 +52,22 @@ pub fn print_ending_status(args: &Cli, blocks: &BlockMap) {
     }
 }
 
-/**
- * Compute the edit distance of 2 strings, with shortcut.
- *
- * Modified from wikipedia pseudocode for matrix approach (no recursion).
- *
- * For strings x and y with length m and n respectively, we create an m+1 by n+1 matrix
- * (represented by 1d array) of costs where moving to the right constitutes as inserting a
- * character from y; moving down constitutes as deleting a character from y; moving diagonally
- * across constitutes as substituting a character from y into a.
- *
- * We stop computing if we find that nothing of our current row is under the threshold, in which
- * case we would exit early.
- *
- * We can also stop computing if we know that the threshold is greater than m + n, which is the
- * maximum.
- *
- * This algorithm runs at a time complexity of O(mn).
- */
+/// Compute the edit distance of 2 strings, with shortcut.
+///
+/// Modified from wikipedia pseudocode for matrix approach (no recursion).
+///
+/// For strings x and y with length m and n respectively, we create an m+1 by n+1 matrix
+/// (represented by 1d array) of costs where moving to the right constitutes as inserting a
+/// character from y; moving down constitutes as deleting a character from y; moving diagonally
+/// across constitutes as substituting a character from y into a.
+///
+/// We stop computing if we find that nothing of our current row is under the threshold, in which
+/// case we would exit early.
+///
+/// We can also stop computing if we know that the threshold is greater than m + n, which is the
+/// maximum.
+///
+/// This algorithm runs at a time complexity of O(mn).
 pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
     let (x, y): (Vec<char>, Vec<char>) = (x.chars().collect(), y.chars().collect());
     let (m, n) = (x.len(), y.len());
@@ -115,11 +111,9 @@ pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
     d[m + n * size]
 }
 
-/**
- * Create a comparison function based on the given threshold.
- *
- * If the threshold is 0, we use string comparison. If not, we use Levenshtein distance.
- */
+/// Create a comparison function based on the given threshold.
+///
+/// If the threshold is 0, we use string comparison. If not, we use Levenshtein distance.
 pub fn comparison_lambda(args: &Cli) -> ComparisonFn {
     let threshold = args.lev_threshold.clone();
     if threshold == 0 {
@@ -129,13 +123,11 @@ pub fn comparison_lambda(args: &Cli) -> ComparisonFn {
     }
 }
 
-/**
- * Find block length of the code blocks.
- *
- * Stops comparison when we reach the end, or if the original index hits the occurrance index. This
- * stops code blocks from "eating" the other code block (i.e. no nested overlapping blocks that are
- * similar).
- */
+/// Find block length of the code blocks.
+///
+/// Stops comparison when we reach the end, or if the original index hits the occurrance index.
+/// This stops code blocks from "eating" the other code block (i.e. no nested overlapping blocks
+/// that are similar).
 pub fn get_block_length(
     original_index: usize,
     occurrance_index: usize,
@@ -164,13 +156,12 @@ pub fn get_block_length(
     }
 }
 
-/**
- * Remove code blocks that appear multiple times.
- *
- * For instance, if we have 3 copies of a code block, there would be 2 keys that refer to it. The
- * first one has 2 indices (pointing to the last 2 copies) and the second one has 1 index (pointing
- * to the last copy). This function removes all of them except for the first instance of the key.
- */
+/// Remove code blocks that appear multiple times.
+///
+/// For instance, if we have 3 copies of a code block, there would be 2 keys that refer to it. The
+/// first one has 2 indices (pointing to the last 2 copies) and the second one has 1 index
+/// (pointing to the last copy). This function removes all of them except for the first instance of
+/// the key.
 pub fn remove_duplicate_blocks(blocks: BlockMap) -> BlockMap {
     let mut keys = blocks.keys().collect::<Vec<&Block>>();
     let mut ret = HashMap::new();
@@ -202,9 +193,7 @@ pub fn remove_duplicate_blocks(blocks: BlockMap) -> BlockMap {
     ret
 }
 
-/**
- * Compare lines.
- */
+/// Compare lines.
 pub fn global_compare_lines(args: &Cli, lines: &Vec<String>) -> BlockMap {
     let mut bm: BlockMap = HashMap::new();
     let bar = ProgressBar::new((lines.len() - 1).try_into().unwrap());
