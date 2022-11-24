@@ -1,10 +1,6 @@
 use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 
-/// How you want the information to be delivered.
-///
-/// Anything other than `ReportingMode::Text` will disable metadata reporting (e.g. reporting file
-/// information, verbosity, and other command line arguments, as well as the concluding remarks).
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum ReportingMode {
     /// Plain text
@@ -37,7 +33,10 @@ pub struct Cli {
     /// File to find the code blocks (defaults to stdin)
     pub file: Option<PathBuf>,
 
-    /// Reporting mode
+    /// How you want the information to be delivered
+    ///
+    /// Anything other than `ReportingMode::Text` will disable metadata reporting (e.g. reporting file
+    /// information, verbosity, and other command line arguments, as well as the concluding remarks).
     #[arg(value_enum, long, default_value_t = ReportingMode::Text)]
     pub reporting_mode: ReportingMode,
 }
