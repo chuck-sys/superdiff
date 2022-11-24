@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use indicatif::{ProgressBar, ProgressStyle};
 use crate::cli::{Cli, ReportingMode};
 
-#[derive(Hash, PartialEq, Eq, PartialOrd, Clone)]
+#[derive(Hash, PartialEq, Eq, PartialOrd, Clone, Debug)]
 pub struct Block {
     pub start: usize,
     pub size: usize,
@@ -318,5 +318,34 @@ mod tests {
         check_lev!("ieanrstien", "            ", 5, 6);
         // Short circuit at the start
         check_lev!("arstarst", "zxcv", 100, 100);
+    }
+
+    #[test]
+    fn test_short_line_compare() {
+        let text: Vec<String> = "a
+
+        1
+        2
+        3
+        4
+
+        1
+        2
+        3
+        4
+        ".split("\n").map(|x| x.to_string()).collect();
+        let args = crate::cli::Cli {
+            lev_threshold: 0,
+            line_threshold: 1,
+            block_threshold: 4,
+            verbose: 0,
+            file: None,
+            reporting_mode: crate::cli::ReportingMode::Text,
+        };
+        let actual = super::global_compare_lines(&args, &text);
+        let mut expected: super::BlockMap = std::collections::HashMap::new();
+        expected.insert(super::Block { start: 3, size: 4 }, vec![8]);
+
+        assert_eq!(expected, actual);
     }
 }
