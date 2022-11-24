@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use indicatif::{ProgressBar, ProgressStyle};
-use crate::cli::Cli;
+use crate::cli::{Cli, ReportingMode};
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Clone)]
 pub struct Block {
@@ -21,23 +21,58 @@ const INSERTION_COST: usize = 1;
 const DELETION_COST: usize = 1;
 const SUBSTITUTION_COST: usize = 1;
 
+/// Basic JSON escape function that probably doesn't cover everything, but is good enough.
+///
+/// This doesn't cover:
+/// - weird unicode characters (they have to be escaped according to the standard)
+///
+/// All because I don't want to include an extra library.
+fn escape_json_string(s: String) -> String {
+    s
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+}
+
 /// Print similar/duplicate code blocks.
 pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>) {
     let mut keys = blocks.keys().collect::<Vec<&Block>>();
     keys.sort();
-    for k in keys {
-        let v = blocks.get(k).unwrap();
-        let (i, l) = (k.start, k.size);
 
-        if args.verbose == 0 {
-            println!("{}, {}: {:?}", i, l, v);
-        } else {
-            println!("Line {} length {}: {:?}", i, l, v);
-        }
+    let indiv_strings: Vec<String> = keys.iter().map(|b| {
+        let v = blocks.get(b).unwrap();
+        let (i, l) = (b.start, b.size);
+        let text = original_lines[i - 1 .. i + l - 1].join("\n");
 
-        if args.verbose >= 2 {
-            println!("{}\n", original_lines[i - 1 .. i + l - 1].join("\n"));
+        match args.reporting_mode {
+            ReportingMode::JSON => {
+                if args.verbose >= 2 {
+                    format!(
+                        "{{ \"original\": {i}, \"duplicates\": {v:?}, \"length\": {l}, \"original_text\": \"{}\" }}",
+                        escape_json_string(text)
+                    )
+                } else {
+                    format!("{{ \"original\": {i}, \"duplicates\": {v:?}, \"length\": {l} }}")
+                }
+            },
+            _ => {
+                if args.verbose == 0 {
+                    format!("{i}, {l}: {v:?}\n")
+                } else {
+                    format!("Line {i} length {l}: {v:?}\n{}", if args.verbose == 2 { text } else { String::from("") })
+                }
+            },
         }
+    }).collect();
+
+    match args.reporting_mode {
+        ReportingMode::JSON => {
+            println!("[{}]", indiv_strings.join(","));
+        },
+        _ => {
+            println!("{}", indiv_strings.join("\n"));
+        },
     }
 }
 

@@ -51,11 +51,16 @@ fn main() -> io::Result<()> {
     let original_lines = get_lines(&args)?;
     let trimmed_lines = original_lines.iter().map(|line| line.trim().to_string()).collect();
 
-    print_arguments(&args, &trimmed_lines);
+    if args.reporting_mode == cli::ReportingMode::Text {
+        print_arguments(&args, &trimmed_lines);
+    }
 
     let blocks = comp::global_compare_lines(&args, &trimmed_lines);
     comp::print_blocks(&args, &blocks, &original_lines);
-    comp::print_ending_status(&args, &blocks);
+
+    if args.reporting_mode == cli::ReportingMode::Text {
+        comp::print_ending_status(&args, &blocks);
+    }
 
     Ok(())
 }
