@@ -58,7 +58,7 @@ pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>)
             },
             _ => {
                 if args.verbose == 0 {
-                    format!("{i}, {l}: {v:?}\n")
+                    format!("{i}, {l}: {v:?}")
                 } else {
                     format!("Line {i} length {l}: {v:?}\n{}", if args.verbose == 2 { text } else { String::from("") })
                 }
