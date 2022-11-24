@@ -1,17 +1,21 @@
 use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 
+/// How you want the information to be delivered.
+///
+/// Anything other than `ReportingMode::Text` will disable metadata reporting (e.g. reporting file
+/// information, verbosity, and other command line arguments, as well as the concluding remarks).
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum ReportingMode {
     /// Plain text
     Text,
-    /// As a list of JSON objects (keys sources, length)
+    /// As a list of JSON objects
     JSON,
 }
 
 #[derive(Parser)]
 #[command(name = "superdiff")]
-#[command(version = "0.1.2")]
+#[command(version = "0.1.3")]
 #[command(about = "Find duplicate code blocks", long_about = None)]
 pub struct Cli {
     /// Levenshtein distance threshold (0 uses string comparison)
