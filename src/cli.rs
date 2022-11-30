@@ -11,7 +11,7 @@ pub enum ReportingMode {
 
 #[derive(Parser)]
 #[command(name = "superdiff")]
-#[command(version = "0.1.3")]
+#[command(version = "1.0.0")]
 #[command(about = "Find duplicate code blocks", long_about = None)]
 pub struct Cli {
     /// Levenshtein distance threshold (0 uses string comparison)

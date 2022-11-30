@@ -70,4 +70,41 @@ Line 16 length 10: [26]
 2 unique blocks with duplicates found, 4 total duplicates
 ```
 
-Huh, apparently there is a duplicate function that are pretty similar!
+Huh, apparently there is a duplicate function that are pretty similar! And now (assuming that the output
+of the function is pretty long and not laughably short), you want to know if line 30 is involved in
+duplicate code, so you do the following:
+
+```console
+$ superdiff --reporting-mode json -b 5 -t 5 examples/really-bad-code.py > output.json
+$ cat output.json | jq
+[
+  {
+    "starting": [
+      5,
+      11
+    ],
+    "length": 5
+  },
+  {
+    "starting": [
+      16,
+      26
+    ],
+    "length": 10
+  }
+]
+
+$ cat output.json | jq 'map(select((.starting | any(. <= 30)) and (.length as $length | .starting | any(. + $length > 30))))'
+[
+  {
+    "starting": [
+      16,
+      26
+    ],
+    "length": 10
+  }
+]
+```
+
+**Note:** If anyone finds a better way of making the `jq` query, please make a pull request and/or let me
+know.

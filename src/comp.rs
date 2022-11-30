@@ -47,13 +47,15 @@ pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>)
 
         match args.reporting_mode {
             ReportingMode::JSON => {
+                let mut v = v.clone();
+                v.insert(0, i);
                 if args.verbose >= 2 {
                     format!(
-                        "{{ \"original\": {i}, \"duplicates\": {v:?}, \"length\": {l}, \"original_text\": \"{}\" }}",
+                        "{{ \"starting\": {v:?}, \"length\": {l}, \"original_text\": \"{}\" }}",
                         escape_json_string(text)
                     )
                 } else {
-                    format!("{{ \"original\": {i}, \"duplicates\": {v:?}, \"length\": {l} }}")
+                    format!("{{ \"starting\": {v:?}, \"length\": {l} }}")
                 }
             },
             _ => {
