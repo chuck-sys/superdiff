@@ -24,7 +24,7 @@ If so, this might be the tool for you!
 Say you have some file `examples/really-bad-code.py` that you want to inspect.
 
 <details>
-    <summary>`examples/really-bad-code.py`</summary>
+    <summary><code>examples/really-bad-code.py</code></summary>
 
     ```python
     #!/usr/bin/env python
