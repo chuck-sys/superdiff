@@ -17,7 +17,7 @@ If so, this might be the tool for you!
 ## Limitations
 
 - Can't check for duplicate code across multiple files (only works on 1 file at a time)
-- Not instantaneous
+- Not instantaneous for large files
 
 ## Usage
 
