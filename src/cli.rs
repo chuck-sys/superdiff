@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
+use std::path::PathBuf;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum ReportingMode {
@@ -21,12 +21,12 @@ pub struct Cli {
     pub line_threshold: usize,
 
     /// Length of block (cluster of lines) before making comparisons
-    #[arg(short, long, default_value_t = 2)]
+    #[arg(short, long, default_value_t = 10)]
     pub block_threshold: usize,
 
-    /// Verbosity levels
-    #[arg(short, action = clap::ArgAction::Count)]
-    pub verbose: u8,
+    /// Set to increase the details that are output
+    #[arg(short, long, default_value_t = true)]
+    pub verbose: bool,
 
     /// Files to find the code blocks
     pub files: Vec<PathBuf>,
@@ -37,4 +37,42 @@ pub struct Cli {
     /// information, verbosity, and other command line arguments, as well as the concluding remarks).
     #[arg(value_enum, long, default_value_t = ReportingMode::Text)]
     pub reporting_mode: ReportingMode,
+}
+
+impl Cli {
+    pub fn print(&self) {
+        if !self.verbose {
+            return;
+        }
+
+        if self.reporting_mode != ReportingMode::Text {
+            return;
+        }
+
+        eprint!("{} file(s)", self.files.len());
+        if self.files.len() <= 10 {
+            eprintln!(" {:?}", &self.files);
+        } else {
+            eprintln!(" {:?}...", &self.files[..10]);
+        }
+
+        eprintln!("Verbosity (-v): {}", self.verbose);
+        eprintln!(
+            "Comparison threshold (-t): {} ({})",
+            self.lev_threshold,
+            if self.lev_threshold > 0 {
+                "Levenshtein distance"
+            } else {
+                "Strict equality"
+            }
+        );
+        eprintln!(
+            "Minimum length of first line before block consideration (-l): {}",
+            self.line_threshold
+        );
+        eprintln!(
+            "Minimum length of block before consideration (-b): {}",
+            self.block_threshold
+        );
+    }
 }

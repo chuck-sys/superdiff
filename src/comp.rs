@@ -1,13 +1,9 @@
+use crate::cli::{Cli, ReportingMode};
+use crate::math::combinations;
+
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use itertools::Itertools;
-use crate::cli::Cli;
-
-#[derive(Hash, PartialEq, Eq, PartialOrd, Clone, Debug)]
-pub struct Block {
-    pub start: usize,
-    pub size: usize,
-}
 
 /// A structure to easily move parameters from one place to another.
 #[derive(Clone, Debug)]
@@ -25,15 +21,84 @@ pub struct Match {
     pub size: usize,
 }
 
-impl Ord for Block {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (self.start, self.size).cmp(&(other.start, other.size))
+pub struct Matches(HashMap<Match, Vec<Match>>);
+pub struct MatchesLookup(HashMap<Match, Match>);
+pub struct FlattenedMatch(Vec<Match>);
+pub struct FlattenedMatches(Vec<FlattenedMatch>);
+
+impl FlattenedMatch {
+    pub fn from_kv_matches(initial_match: Match, mut other_matches: Vec<Match>) -> Self {
+        other_matches.insert(0, initial_match);
+        FlattenedMatch(other_matches)
+    }
+
+    pub fn to_json_string(&self) -> String {
+        format!(
+            "[{}]",
+            self.0
+                .iter()
+                .map(|x| x.to_json_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+
+    pub fn to_friendly_string(&self) -> String {
+        format!(
+            "=== MATCH ===\n{}\n",
+            self.0
+                .iter()
+                .group_by(|item| &item.file)
+                .into_iter()
+                .map(|(key, group)| {
+                    let group: Vec<&Match> = group.collect();
+                    format!(
+                        "File: {:?}\nLines: {:?}\nSize: {}",
+                        key,
+                        group.iter().map(|x| x.line).collect::<Vec<usize>>(),
+                        group[0].size,
+                    )
+                })
+                .collect::<Vec<String>>()
+                .join("\n---\n")
+        )
     }
 }
 
-pub type Matches = HashMap<Match, Vec<Match>>;
-pub type MatchesLookup = HashMap<Match, Match>;
-pub type ComparisonFn = Box<dyn Fn(&String, &String) -> bool>;
+impl FlattenedMatches {
+    pub fn from_matches(m: Matches) -> Self {
+        FlattenedMatches(
+            m.0.into_iter()
+                .map(|(k, v)| FlattenedMatch::from_kv_matches(k, v))
+                .collect(),
+        )
+    }
+
+    pub fn unique_matches(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn to_json_string(&self) -> String {
+        format!(
+            "[{}]",
+            self.0
+                .iter()
+                .map(|x| x.to_json_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+
+    pub fn to_friendly_string(&self) -> String {
+        self.0
+            .iter()
+            .map(|x| x.to_friendly_string())
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+}
+
+type ComparisonFn = Box<dyn Fn(&String, &String) -> bool>;
 
 const INSERTION_COST: usize = 1;
 const DELETION_COST: usize = 1;
@@ -44,8 +109,10 @@ impl Match {
         // Use 1-based indexing to count line numbers.
         format!(
             "{{ \"file\": \"{}\", \"line\": {}, \"size\": {} }}",
-            self.file.display(), self.line + 1, self.size
-            )
+            self.file.display(),
+            self.line + 1,
+            self.size
+        )
     }
 }
 
@@ -101,11 +168,21 @@ fn get_matches_from_2_files(
     mut matches_hash: Matches,
     comp: &ComparisonFn,
     mut f1: CompFile,
-    mut f2: CompFile) -> (MatchesLookup, Matches) {
-
+    mut f2: CompFile,
+) -> (MatchesLookup, Matches) {
     f1.start = 0;
 
     while f1.start < f1.lines.len() {
+        if args.verbose && args.reporting_mode == ReportingMode::Text {
+            eprint!(
+                "\rNow comparing {:?} and {:?} ({:>4}/{:>4})",
+                &f1.file,
+                &f2.file,
+                f1.start,
+                f1.lines.len()
+            );
+        }
+
         // Don't consider line lengths below the threshold
         if f1.current_line().len() < args.line_threshold {
             f1.start += 1;
@@ -124,19 +201,35 @@ fn get_matches_from_2_files(
                     continue;
                 }
 
-                let original_block = Match { file: f1.file.clone(), line: f1.start, size: block_length };
-                let k = match where_is_match.get(&original_block) {
+                let original_block = Match {
+                    file: f1.file.clone(),
+                    line: f1.start,
+                    size: block_length,
+                };
+                let k = match where_is_match.0.get(&original_block) {
                     Some(x) => x,
                     None => &original_block,
                 };
-                let matching_block = Match { file: f2.file.clone(), line: f2.start, size: block_length };
-                if matches_hash.contains_key(k) {
-                    matches_hash.get_mut(k).unwrap().push(matching_block.clone());
+                let matching_block = Match {
+                    file: f2.file.clone(),
+                    line: f2.start,
+                    size: block_length,
+                };
+                if matches_hash.0.contains_key(k) {
+                    matches_hash
+                        .0
+                        .get_mut(k)
+                        .unwrap()
+                        .push(matching_block.clone());
                 } else {
-                    matches_hash.insert(original_block.clone(), vec![matching_block.clone()]);
-                    where_is_match.insert(original_block.clone(), original_block.clone());
+                    matches_hash
+                        .0
+                        .insert(original_block.clone(), vec![matching_block.clone()]);
+                    where_is_match
+                        .0
+                        .insert(original_block.clone(), original_block.clone());
                 }
-                where_is_match.insert(matching_block, original_block);
+                where_is_match.0.insert(matching_block, original_block);
 
                 f2.start += block_length;
                 max_block_length = std::cmp::max(max_block_length, block_length);
@@ -158,6 +251,12 @@ fn get_lines_from_file(file: &PathBuf) -> std::io::Result<Vec<String>> {
         .collect::<Vec<String>>())
 }
 
+/// Load all files into memory at a time.
+///
+/// May not work well if you have an extremely large codebase.
+///
+/// FIXME Do analysis on which is faster: initially loading everything into memory or loading on
+///       the go. Stick with the one that is more efficient.
 fn get_all_file_contents(args: &Cli) -> HashMap<&PathBuf, Vec<String>> {
     let mut contents = HashMap::new();
 
@@ -165,34 +264,60 @@ fn get_all_file_contents(args: &Cli) -> HashMap<&PathBuf, Vec<String>> {
         match get_lines_from_file(f) {
             Ok(lines) => {
                 contents.insert(f, lines);
-            },
+            }
             Err(e) => {
                 println!("file read error ('{}'): {}", f.display(), e);
-            },
+            }
         }
     }
 
     contents
 }
 
-fn match_with_others(args: &Cli, comp: &ComparisonFn, contents: &HashMap<&PathBuf, Vec<String>>) -> Matches {
-    let mut where_is_match = HashMap::new();
-    let mut matches_hash = HashMap::new();
+/// Pair each file with the other and get groups of matches.
+fn match_with_others(
+    args: &Cli,
+    comp: &ComparisonFn,
+    contents: &HashMap<&PathBuf, Vec<String>>,
+) -> Matches {
+    let mut where_is_match = MatchesLookup(HashMap::new());
+    let mut matches_hash = Matches(HashMap::new());
+    let total_combinations = combinations(args.files.len(), 2) + args.files.len();
 
-    for combo in args.files.iter().combinations_with_replacement(2) {
+    for (i, combo) in args
+        .files
+        .iter()
+        .combinations_with_replacement(2)
+        .enumerate()
+    {
         let lines1 = contents.get(&combo[0]);
         let lines2 = contents.get(&combo[1]);
 
         if lines1.is_some() && lines2.is_some() {
-            let f1 = CompFile { file: combo[0].clone(), start: 0, lines: lines1.unwrap() };
-            let f2 = CompFile { file: combo[1].clone(), start: 0, lines: lines2.unwrap() };
-            (where_is_match, matches_hash) = get_matches_from_2_files(args, where_is_match, matches_hash, comp, f1, f2);
+            let f1 = CompFile {
+                file: combo[0].clone(),
+                start: 0,
+                lines: lines1.unwrap(),
+            };
+            let f2 = CompFile {
+                file: combo[1].clone(),
+                start: 0,
+                lines: lines2.unwrap(),
+            };
+
+            (where_is_match, matches_hash) =
+                get_matches_from_2_files(args, where_is_match, matches_hash, comp, f1, f2);
+
+            if args.verbose && args.reporting_mode == ReportingMode::Text {
+                eprintln!("...done {} out of {}", i + 1, total_combinations);
+            }
         }
     }
 
     matches_hash
 }
 
+/// Get all groups of matches in the given files.
 pub fn get_all_matches(args: &Cli) -> Matches {
     let comp = comparison_lambda(args);
     let contents = get_all_file_contents(args);
@@ -200,7 +325,7 @@ pub fn get_all_matches(args: &Cli) -> Matches {
     match_with_others(args, &comp, &contents)
 }
 
-/// Compute the edit distance of 2 strings, with shortcut.
+/// Compute the edit distance of 2 strings, with shortcuts.
 ///
 /// Modified from wikipedia pseudocode for matrix approach (no recursion).
 ///
@@ -238,12 +363,18 @@ pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
         let mut has_changed_row = false;
 
         for i in 1..(m + 1) {
-            let sub_cost = if x[i - 1] == y[j - 1] { 0 } else { SUBSTITUTION_COST };
+            let sub_cost = if x[i - 1] == y[j - 1] {
+                0
+            } else {
+                SUBSTITUTION_COST
+            };
             d[i + j * size] = std::cmp::min(
                 d[(i - 1) + j * size] + INSERTION_COST,
                 std::cmp::min(
                     d[i + (j - 1) * size] + DELETION_COST,
-                    d[(i - 1) + (j - 1) * size] + sub_cost));
+                    d[(i - 1) + (j - 1) * size] + sub_cost,
+                ),
+            );
 
             if d[i + j * size] <= threshold {
                 has_changed_row = true;
@@ -264,22 +395,18 @@ mod tests {
     use crate::comp::levenshtein_distance;
 
     macro_rules! check_lev {
-        ( $a:literal, $b:literal, $t:literal ) => {
-            {
-                check_lev!($a, $b, $t, $t);
-            }
-        };
+        ( $a:literal, $b:literal, $t:literal ) => {{
+            check_lev!($a, $b, $t, $t);
+        }};
 
-        ( $a:literal, $b:literal, $t:literal, $e:literal ) => {
-            {
-                let dist = levenshtein_distance(&$a.to_string(), &$b.to_string(), $t);
-                assert_eq!(
-                    dist,
-                    $e,
-                    "levenshtein_distance({}, {}, {}) = {}, expected {}",
-                    $a, $b, $t, dist, $e);
-            }
-        }
+        ( $a:literal, $b:literal, $t:literal, $e:literal ) => {{
+            let dist = levenshtein_distance(&$a.to_string(), &$b.to_string(), $t);
+            assert_eq!(
+                dist, $e,
+                "levenshtein_distance({}, {}, {}) = {}, expected {}",
+                $a, $b, $t, dist, $e
+            );
+        }};
     }
 
     #[test]
