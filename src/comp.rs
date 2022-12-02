@@ -1,10 +1,27 @@
-use std::collections::{HashMap, HashSet};
-use indicatif::{ProgressBar, ProgressStyle};
-use crate::cli::{Cli, ReportingMode};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use itertools::Itertools;
+use crate::cli::Cli;
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Clone, Debug)]
 pub struct Block {
     pub start: usize,
+    pub size: usize,
+}
+
+/// A structure to easily move parameters from one place to another.
+#[derive(Clone, Debug)]
+struct CompFile<'a> {
+    file: PathBuf,
+    lines: &'a Vec<String>,
+    start: usize,
+}
+
+/// A matching block. Doesn't include the text.
+#[derive(Hash, PartialEq, Eq, Clone, Debug)]
+pub struct Match {
+    pub file: PathBuf,
+    pub line: usize,
     pub size: usize,
 }
 
@@ -14,79 +31,173 @@ impl Ord for Block {
     }
 }
 
-pub type BlockMap = HashMap<Block, Vec<usize>>;
+pub type Matches = HashMap<Match, Vec<Match>>;
+pub type MatchesLookup = HashMap<Match, Match>;
 pub type ComparisonFn = Box<dyn Fn(&String, &String) -> bool>;
 
 const INSERTION_COST: usize = 1;
 const DELETION_COST: usize = 1;
 const SUBSTITUTION_COST: usize = 1;
 
-/// Basic JSON escape function that probably doesn't cover everything, but is good enough.
-///
-/// This doesn't cover:
-/// - weird unicode characters (they have to be escaped according to the standard)
-///
-/// All because I don't want to include an extra library.
-fn escape_json_string(s: String) -> String {
-    s
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\n", "\\n")
-        .replace("\t", "\\t")
+impl Match {
+    pub fn to_json_string(&self) -> String {
+        // Use 1-based indexing to count line numbers.
+        format!(
+            "{{ \"file\": \"{}\", \"line\": {}, \"size\": {} }}",
+            self.file.display(), self.line + 1, self.size
+            )
+    }
 }
 
-/// Print similar/duplicate code blocks.
-pub fn print_blocks(args: &Cli, blocks: &BlockMap, original_lines: &Vec<String>) {
-    let mut keys = blocks.keys().collect::<Vec<&Block>>();
-    keys.sort();
+impl<'a> CompFile<'a> {
+    fn current_line(&'a self) -> &String {
+        &self.lines[self.start]
+    }
+}
 
-    let indiv_strings: Vec<String> = keys.iter().map(|b| {
-        let v = blocks.get(b).unwrap();
-        let (i, l) = (b.start, b.size);
-        let text = original_lines[i - 1 .. i + l - 1].join("\n");
+/// Create a comparison function based on the given threshold.
+///
+/// If the threshold is 0, we use string comparison. If not, we use Levenshtein distance.
+pub fn comparison_lambda(args: &Cli) -> ComparisonFn {
+    let threshold = args.lev_threshold.clone();
+    if threshold == 0 {
+        Box::new(move |x, y| x == y)
+    } else {
+        Box::new(move |x, y| levenshtein_distance(x, y, threshold) <= threshold)
+    }
+}
 
-        match args.reporting_mode {
-            ReportingMode::JSON => {
-                let mut v = v.clone();
-                v.insert(0, i);
-                if args.verbose >= 2 {
-                    format!(
-                        "{{ \"starting\": {v:?}, \"length\": {l}, \"original_text\": \"{}\" }}",
-                        escape_json_string(text)
-                    )
-                } else {
-                    format!("{{ \"starting\": {v:?}, \"length\": {l} }}")
+/// Find block length of the matching code block.
+///
+/// Stops comparison when we reach the end of the file, or if the files are the same and the
+/// original index hits the occurrance index. This stops code blocks from "eating" the other code
+/// block (i.e. no nested overlapping blocks that are similar).
+fn get_max_block_size(comp: &ComparisonFn, f1: &CompFile, f2: &CompFile) -> usize {
+    let mut block_length = 1;
+
+    loop {
+        let i1 = f1.start + block_length;
+        let i2 = f2.start + block_length;
+
+        if f1.file == f2.file && i1 == f2.start {
+            return block_length;
+        }
+
+        if i1 >= f1.lines.len() || i2 >= f2.lines.len() {
+            return block_length;
+        }
+
+        if comp(&f1.lines[i1], &f2.lines[i2]) {
+            block_length += 1;
+        } else {
+            return block_length;
+        }
+    }
+}
+
+fn get_matches_from_2_files(
+    args: &Cli,
+    mut where_is_match: MatchesLookup,
+    mut matches_hash: Matches,
+    comp: &ComparisonFn,
+    mut f1: CompFile,
+    mut f2: CompFile) -> (MatchesLookup, Matches) {
+
+    f1.start = 0;
+
+    while f1.start < f1.lines.len() {
+        // Don't consider line lengths below the threshold
+        if f1.current_line().len() < args.line_threshold {
+            f1.start += 1;
+            continue;
+        }
+
+        f2.start = if f1.file == f2.file { f1.start + 1 } else { 0 };
+        let mut max_block_length = 1;
+
+        while f2.start < f2.lines.len() {
+            if comp(f1.current_line(), f2.current_line()) {
+                let block_length = get_max_block_size(comp, &f1, &f2);
+
+                if block_length < args.block_threshold {
+                    f2.start += block_length;
+                    continue;
                 }
+
+                let original_block = Match { file: f1.file.clone(), line: f1.start, size: block_length };
+                let k = match where_is_match.get(&original_block) {
+                    Some(x) => x,
+                    None => &original_block,
+                };
+                let matching_block = Match { file: f2.file.clone(), line: f2.start, size: block_length };
+                if matches_hash.contains_key(k) {
+                    matches_hash.get_mut(k).unwrap().push(matching_block.clone());
+                } else {
+                    matches_hash.insert(original_block.clone(), vec![matching_block.clone()]);
+                    where_is_match.insert(original_block.clone(), original_block.clone());
+                }
+                where_is_match.insert(matching_block, original_block);
+
+                f2.start += block_length;
+                max_block_length = std::cmp::max(max_block_length, block_length);
+            } else {
+                f2.start += 1;
+            }
+        }
+
+        f1.start += max_block_length;
+    }
+
+    (where_is_match, matches_hash)
+}
+
+fn get_lines_from_file(file: &PathBuf) -> std::io::Result<Vec<String>> {
+    Ok(std::fs::read_to_string(file)?
+        .split("\n")
+        .map(|line| line.trim().to_string())
+        .collect::<Vec<String>>())
+}
+
+fn get_all_file_contents(args: &Cli) -> HashMap<&PathBuf, Vec<String>> {
+    let mut contents = HashMap::new();
+
+    for f in &args.files {
+        match get_lines_from_file(f) {
+            Ok(lines) => {
+                contents.insert(f, lines);
             },
-            _ => {
-                if args.verbose == 0 {
-                    format!("{i}, {l}: {v:?}")
-                } else {
-                    format!("Line {i} length {l}: {v:?}\n{}", if args.verbose == 2 { text } else { String::from("") })
-                }
+            Err(e) => {
+                println!("file read error ('{}'): {}", f.display(), e);
             },
         }
-    }).collect();
-
-    match args.reporting_mode {
-        ReportingMode::JSON => {
-            println!("[{}]", indiv_strings.join(","));
-        },
-        _ => {
-            println!("{}", indiv_strings.join("\n"));
-        },
     }
+
+    contents
 }
 
-pub fn print_ending_status(args: &Cli, blocks: &BlockMap) {
-    if args.verbose > 0 {
-        let num_duped_blocks = blocks.values()
-            .fold(0usize, |acc, item| acc + item.len());
-        let total_dupes = blocks.len() + num_duped_blocks;
-        println!("{} unique blocks with duplicates found, {} total duplicates",
-            blocks.len(),
-            total_dupes);
+fn match_with_others(args: &Cli, comp: &ComparisonFn, contents: &HashMap<&PathBuf, Vec<String>>) -> Matches {
+    let mut where_is_match = HashMap::new();
+    let mut matches_hash = HashMap::new();
+
+    for combo in args.files.iter().combinations_with_replacement(2) {
+        let lines1 = contents.get(&combo[0]);
+        let lines2 = contents.get(&combo[1]);
+
+        if lines1.is_some() && lines2.is_some() {
+            let f1 = CompFile { file: combo[0].clone(), start: 0, lines: lines1.unwrap() };
+            let f2 = CompFile { file: combo[1].clone(), start: 0, lines: lines2.unwrap() };
+            (where_is_match, matches_hash) = get_matches_from_2_files(args, where_is_match, matches_hash, comp, f1, f2);
+        }
     }
+
+    matches_hash
+}
+
+pub fn get_all_matches(args: &Cli) -> Matches {
+    let comp = comparison_lambda(args);
+    let contents = get_all_file_contents(args);
+
+    match_with_others(args, &comp, &contents)
 }
 
 /// Compute the edit distance of 2 strings, with shortcut.
@@ -148,143 +259,6 @@ pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
     d[m + n * size]
 }
 
-/// Create a comparison function based on the given threshold.
-///
-/// If the threshold is 0, we use string comparison. If not, we use Levenshtein distance.
-pub fn comparison_lambda(args: &Cli) -> ComparisonFn {
-    let threshold = args.lev_threshold.clone();
-    if threshold == 0 {
-        Box::new(move |x, y| x == y)
-    } else {
-        Box::new(move |x, y| levenshtein_distance(x, y, threshold) <= threshold)
-    }
-}
-
-/// Find block length of the code blocks.
-///
-/// Stops comparison when we reach the end, or if the original index hits the occurrance index.
-/// This stops code blocks from "eating" the other code block (i.e. no nested overlapping blocks
-/// that are similar).
-pub fn get_block_length(
-    original_index: usize,
-    occurrance_index: usize,
-    lines: &Vec<String>,
-    comp: &ComparisonFn) -> usize {
-
-    let mut block_length = 1;
-
-    loop {
-        let i = original_index + block_length;
-        let j = occurrance_index + block_length;
-
-        if i == occurrance_index {
-            return block_length;
-        }
-
-        if j >= lines.len() {
-            return block_length;
-        }
-
-        if comp(&lines[i], &lines[j]) {
-            block_length += 1;
-        } else {
-            return block_length;
-        }
-    }
-}
-
-/// Remove code blocks that appear multiple times.
-///
-/// For instance, if we have 3 copies of a code block, there would be 2 keys that refer to it. The
-/// first one has 2 indices (pointing to the last 2 copies) and the second one has 1 index
-/// (pointing to the last copy). This function removes all of them except for the first instance of
-/// the key.
-pub fn remove_duplicate_blocks(blocks: BlockMap) -> BlockMap {
-    let mut keys = blocks.keys().collect::<Vec<&Block>>();
-    let mut ret = HashMap::new();
-    let mut bad_keys = HashSet::new();
-    keys.sort();
-
-    for k in keys.iter().rev() {
-        match blocks.get(k) {
-            Some(linenos) => {
-                for j in linenos {
-                    let alt_index = Block { start: *j, size: k.size };
-                    if blocks.contains_key(&alt_index) {
-                        bad_keys.insert(alt_index);
-                    }
-                }
-            },
-            None => {
-                continue;
-            }
-        }
-    }
-
-    for k in keys {
-        if !bad_keys.contains(&k) {
-            ret.insert(k.clone(), blocks.get(&k).unwrap().clone());
-        }
-    }
-
-    ret
-}
-
-/// Compare lines.
-pub fn global_compare_lines(args: &Cli, lines: &Vec<String>) -> BlockMap {
-    let mut bm: BlockMap = HashMap::new();
-    let bar = ProgressBar::new((lines.len() - 1).try_into().unwrap());
-    bar.set_style(
-        ProgressStyle::with_template(
-            "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}"
-            ).unwrap());
-    let comp = comparison_lambda(args);
-    let mut i = 0;
-
-    while i < lines.len() - 1 {
-        if lines[i].len() < args.line_threshold {
-            i += 1;
-            continue;
-        }
-
-        let mut j = i + 1;
-        let mut max_block_length = 1;
-
-        while j < lines.len() {
-            if comp(&lines[i], &lines[j]) {
-                let block_length = get_block_length(i, j, lines, &comp);
-
-                if block_length < args.block_threshold {
-                    j += block_length;
-                    continue;
-                }
-
-                // Use 1-based indexing because that's how we usually count line numbers
-                // Just remember to subtract 1 when interfacing with the lines array.
-                let k = Block { start: i + 1, size: block_length };
-                if bm.contains_key(&k) {
-                    bm.get_mut(&k).unwrap().push(j + 1);
-                } else {
-                    bm.insert(k, vec![j + 1]);
-                }
-
-                j += block_length;
-                max_block_length = std::cmp::max(max_block_length, block_length);
-            } else {
-                j += 1;
-            }
-        }
-
-        // Skip smaller code blocks as an optimization. This removes the possibility of blocks
-        // within other blocks, with the downside that genuine smaller "sub-"code blocks won't
-        // be found.
-        i += max_block_length;
-        bar.inc(max_block_length as u64);
-    }
-
-    remove_duplicate_blocks(bm)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::comp::levenshtein_distance;
@@ -320,34 +294,5 @@ mod tests {
         check_lev!("ieanrstien", "            ", 5, 6);
         // Short circuit at the start
         check_lev!("arstarst", "zxcv", 100, 100);
-    }
-
-    #[test]
-    fn test_short_line_compare() {
-        let text: Vec<String> = "a
-
-        1
-        2
-        3
-        4
-
-        1
-        2
-        3
-        4
-        ".split("\n").map(|x| x.to_string()).collect();
-        let args = crate::cli::Cli {
-            lev_threshold: 0,
-            line_threshold: 1,
-            block_threshold: 4,
-            verbose: 0,
-            file: None,
-            reporting_mode: crate::cli::ReportingMode::Text,
-        };
-        let actual = super::global_compare_lines(&args, &text);
-        let mut expected: super::BlockMap = std::collections::HashMap::new();
-        expected.insert(super::Block { start: 3, size: 4 }, vec![8]);
-
-        assert_eq!(expected, actual);
     }
 }

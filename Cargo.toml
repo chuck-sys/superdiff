@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indicatif = "0.17.1"
-clap = { version = "4.0.15", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"] }
+itertools = "0.10"
 
 [dev-dependencies]
 criterion = "0.3"

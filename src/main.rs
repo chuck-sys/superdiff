@@ -1,42 +1,15 @@
 use clap::Parser;
 use std::io;
-use std::path::PathBuf;
-use std::fs;
 
 mod cli;
 mod comp;
 
-fn get_lines_from_file(file: &PathBuf) -> io::Result<Vec<String>> {
-    Ok(fs::read_to_string(file)?
-        .split("\n")
-        .map(|line| line.to_string())
-        .collect::<Vec<String>>())
-}
-
-fn get_lines_from_stdin() -> io::Result<Vec<String>> {
-    Ok(io::stdin()
-        .lines()
-        .map(|line| line.unwrap().to_string())
-        .collect::<Vec<String>>())
-}
-
-fn get_lines(args: &cli::Cli) -> io::Result<Vec<String>> {
-    match args.file {
-        Some(ref file) => get_lines_from_file(file),
-        None => get_lines_from_stdin(),
-    }
-}
-
-fn print_arguments(args: &cli::Cli, lines: &Vec<String>) {
+fn print_arguments(args: &cli::Cli) {
     if args.verbose == 0 {
         return;
     }
 
-    if let Some(ref file) = args.file {
-        println!("File: {:?} ({} lines)", file, lines.len());
-    } else {
-        println!("Standard input ({} lines)", lines.len());
-    }
+    println!("{} files", args.files.len());
 
     println!("Verbosity (-v): {}", args.verbose);
     println!("Comparison threshold (-t): {} ({})",
@@ -46,21 +19,47 @@ fn print_arguments(args: &cli::Cli, lines: &Vec<String>) {
     println!("Minimum length of block before consideration (-b): {}", args.block_threshold);
 }
 
+type FlattenedMatches = Vec<Vec<comp::Match>>;
+
+fn flatten_matches(m: comp::Matches) -> FlattenedMatches {
+    let mut ret = vec![];
+
+    for (initial_match, mut other_matches) in m {
+        other_matches.insert(0, initial_match);
+        ret.push(other_matches);
+    }
+
+    ret
+}
+
+fn vecmatches_to_json_string(v: &Vec<comp::Match>) -> String {
+    format!("[{}]", v.iter().map(|x| x.to_json_string()).collect::<Vec<String>>().join(", "))
+}
+
+fn flattened_matches_to_string(args: &cli::Cli, m: FlattenedMatches) -> String {
+    match args.reporting_mode {
+        cli::ReportingMode::JSON => {
+            format!("[ {} ]",
+                m.iter()
+                .map(vecmatches_to_json_string)
+                .collect::<Vec<String>>()
+                .join(", "))
+        },
+        cli::ReportingMode::Text => {
+            format!("")
+        },
+    }
+}
+
 fn main() -> io::Result<()> {
     let args = cli::Cli::parse();
-    let original_lines = get_lines(&args)?;
-    let trimmed_lines = original_lines.iter().map(|line| line.trim().to_string()).collect();
 
     if args.reporting_mode == cli::ReportingMode::Text {
-        print_arguments(&args, &trimmed_lines);
+        print_arguments(&args);
     }
 
-    let blocks = comp::global_compare_lines(&args, &trimmed_lines);
-    comp::print_blocks(&args, &blocks, &original_lines);
-
-    if args.reporting_mode == cli::ReportingMode::Text {
-        comp::print_ending_status(&args, &blocks);
-    }
+    let matches = flatten_matches(comp::get_all_matches(&args));
+    println!("{}", flattened_matches_to_string(&args, matches));
 
     Ok(())
 }

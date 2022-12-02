@@ -10,9 +10,7 @@ pub enum ReportingMode {
 }
 
 #[derive(Parser)]
-#[command(name = "superdiff")]
-#[command(version = "1.0.0")]
-#[command(about = "Find duplicate code blocks", long_about = None)]
+#[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Levenshtein distance threshold (0 uses string comparison)
     #[arg(short = 't', long, default_value_t = 0)]
@@ -30,8 +28,8 @@ pub struct Cli {
     #[arg(short, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// File to find the code blocks (defaults to stdin)
-    pub file: Option<PathBuf>,
+    /// Files to find the code blocks
+    pub files: Vec<PathBuf>,
 
     /// How you want the information to be delivered
     ///
