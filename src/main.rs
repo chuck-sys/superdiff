@@ -6,7 +6,7 @@ mod math;
 
 fn print_matches(args: &cli::Cli, matches: &comp::FlattenedMatches) {
     match args.reporting_mode {
-        cli::ReportingMode::JSON => {
+        cli::ReportingMode::Json => {
             println!("{}", matches.to_json_string());
         }
         cli::ReportingMode::Text => {
@@ -16,17 +16,12 @@ fn print_matches(args: &cli::Cli, matches: &comp::FlattenedMatches) {
 }
 
 fn print_conclusion(args: &cli::Cli, matches: &comp::FlattenedMatches) {
-    match args.reporting_mode {
-        cli::ReportingMode::Text => {
-            if args.verbose {
-                println!(
-                    "A total of {} unique match(es) were found in the {} file(s).",
-                    matches.unique_matches(),
-                    args.files.len()
-                );
-            }
-        }
-        _ => {}
+    if args.reporting_mode == cli::ReportingMode::Text && args.verbose {
+        println!(
+            "A total of {} unique match(es) were found in the {} file(s).",
+            matches.unique_matches(),
+            args.files.len()
+        );
     }
 }
 

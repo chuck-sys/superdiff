@@ -126,7 +126,7 @@ impl<'a> CompFile<'a> {
 ///
 /// If the threshold is 0, we use string comparison. If not, we use Levenshtein distance.
 pub fn comparison_lambda(args: &Cli) -> ComparisonFn {
-    let threshold = args.lev_threshold.clone();
+    let threshold = args.lev_threshold;
     if threshold == 0 {
         Box::new(move |x, y| x == y)
     } else {
@@ -246,7 +246,7 @@ fn get_matches_from_2_files(
 
 fn get_lines_from_file(file: &PathBuf) -> std::io::Result<Vec<String>> {
     Ok(std::fs::read_to_string(file)?
-        .split("\n")
+        .split('\n')
         .map(|line| line.trim().to_string())
         .collect::<Vec<String>>())
 }
@@ -293,16 +293,16 @@ fn match_with_others(
         let lines1 = contents.get(&combo[0]);
         let lines2 = contents.get(&combo[1]);
 
-        if lines1.is_some() && lines2.is_some() {
+        if let (Some(lines1), Some(lines2)) = (lines1, lines2) {
             let f1 = CompFile {
                 file: combo[0].clone(),
                 start: 0,
-                lines: lines1.unwrap(),
+                lines: lines1,
             };
             let f2 = CompFile {
                 file: combo[1].clone(),
                 start: 0,
-                lines: lines2.unwrap(),
+                lines: lines2,
             };
 
             (where_is_match, matches_hash) =
@@ -341,7 +341,7 @@ pub fn get_all_matches(args: &Cli) -> Matches {
 /// maximum.
 ///
 /// This algorithm runs at a time complexity of O(mn).
-pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
+pub fn levenshtein_distance(x: &str, y: &str, threshold: usize) -> usize {
     let (x, y): (Vec<char>, Vec<char>) = (x.chars().collect(), y.chars().collect());
     let (m, n) = (x.len(), y.len());
     let mut d = vec![0usize; (m + 1) * (n + 1)];
@@ -352,11 +352,11 @@ pub fn levenshtein_distance(x: &String, y: &String, threshold: usize) -> usize {
     }
 
     for i in 1..(m + 1) {
-        d[i + 0 * size] = i;
+        d[i] = i;
     }
 
     for j in 1..(n + 1) {
-        d[0 + j * size] = j;
+        d[j * size] = j;
     }
 
     for j in 1..(n + 1) {

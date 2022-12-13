@@ -6,7 +6,7 @@ pub enum ReportingMode {
     /// Plain text
     Text,
     /// As a list of JSON objects
-    JSON,
+    Json,
 }
 
 #[derive(Parser)]
