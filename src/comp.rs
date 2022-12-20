@@ -174,13 +174,22 @@ fn get_matches_from_2_files(
 
     while f1.start < f1.lines.len() {
         if args.verbose && args.reporting_mode == ReportingMode::Text {
-            eprint!(
-                "\rNow comparing {:?} and {:?} ({:>4}/{:>4})",
-                &f1.file,
-                &f2.file,
-                f1.start,
-                f1.lines.len()
-            );
+            if f1.file == f2.file {
+                eprint!(
+                    "\rNow comparing {:?} ({:>4}/{:>4})",
+                    &f1.file,
+                    f1.start,
+                    f1.lines.len()
+                );
+            } else {
+                eprint!(
+                    "\rNow comparing {:?} and {:?} ({:>4}/{:>4})",
+                    &f1.file,
+                    &f2.file,
+                    f1.start,
+                    f1.lines.len()
+                );
+            }
         }
 
         // Don't consider line lengths below the threshold
@@ -215,19 +224,13 @@ fn get_matches_from_2_files(
                     line: f2.start,
                     size: block_length,
                 };
-                if matches_hash.0.contains_key(k) {
-                    matches_hash
-                        .0
-                        .get_mut(k)
-                        .unwrap()
-                        .push(matching_block.clone());
+
+                if let Some(v) = matches_hash.0.get_mut(k) {
+                    v.push(matching_block.clone());
                 } else {
                     matches_hash
                         .0
                         .insert(original_block.clone(), vec![matching_block.clone()]);
-                    where_is_match
-                        .0
-                        .insert(original_block.clone(), original_block.clone());
                 }
                 where_is_match.0.insert(matching_block, original_block);
 
@@ -266,7 +269,7 @@ fn get_all_file_contents(args: &Cli) -> HashMap<&PathBuf, Vec<String>> {
                 contents.insert(f, lines);
             }
             Err(e) => {
-                println!("file read error ('{}'): {}", f.display(), e);
+                eprintln!("file read error ('{}'): {}", f.display(), e);
             }
         }
     }
