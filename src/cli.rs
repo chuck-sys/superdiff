@@ -31,12 +31,6 @@ pub struct Cli {
     /// Files to find the code blocks
     pub files: Vec<PathBuf>,
 
-    /// Maximum number of files to be loaded in memory at once
-    ///
-    /// If not set, defaults to the number of files provided.
-    #[arg(long)]
-    pub max_files_loaded: Option<usize>,
-
     /// How you want the information to be delivered
     ///
     /// Anything other than `ReportingMode::Text` will disable metadata reporting (e.g. reporting file

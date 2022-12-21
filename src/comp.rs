@@ -1,6 +1,6 @@
 use crate::cli::Cli;
-use crate::types::{CompFile, Match, Matches, MatchesLookup, ComparisonFn, FileCache};
 use crate::printer;
+use crate::types::{CompFile, ComparisonFn, FileCache, Match, Matches, MatchesLookup};
 
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -124,7 +124,9 @@ pub fn get_all_matches(args: &Cli) -> Matches {
             (where_is_match, matches_hash) =
                 get_matches_from_2_files(args, (where_is_match, matches_hash), &comp, (f1, f2));
 
-                printer::done_comparison(args, i + 1);
+            printer::done_comparison(args, i + 1);
+        } else {
+            printer::skip_comparison(args, combo[0], combo[1]);
         }
     }
 
