@@ -7,10 +7,10 @@ mod math;
 fn print_matches(args: &cli::Cli, matches: &comp::FlattenedMatches) {
     match args.reporting_mode {
         cli::ReportingMode::Json => {
-            println!("{}", matches.to_json_string());
+            println!("{}", matches.json());
         }
         cli::ReportingMode::Text => {
-            println!("{}", matches.to_friendly_string());
+            println!("{matches}");
         }
     }
 }

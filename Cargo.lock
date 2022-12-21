@@ -475,6 +475,9 @@ name = "serde"
 version = "1.0.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d193d69bae983fc11a79df82342761dfbf28a99fc8d203dca4c3c1b590948965"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_cbor"
@@ -521,6 +524,8 @@ dependencies = [
  "clap 4.0.15",
  "criterion",
  "itertools",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
