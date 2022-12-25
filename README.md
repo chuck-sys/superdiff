@@ -12,7 +12,6 @@ If so, this might be the tool for you!
 - Finds similar-enough code slices
 - `JSON` reporting for `jq` integeration
 - Fast enough (00:03:39 for a 17k LOC with block size 10 and Levenshtein threshold 10)
-- A progress bar (Amazing!)
 - Can check for duplicate code across multiple files
 
 ## Limitations
@@ -77,7 +76,7 @@ Verbosity (-v): true
 Comparison threshold (-t): 0 (Strict equality)
 Minimum length of first line before block consideration (-l): 1
 Minimum length of block before consideration (-b): 4
-Now comparing "examples/really-bad-code.py" and "examples/really-bad-code.py" (   37/   38)...done 1 out of 1
+Now comparing "examples/really-bad-code.py" (   37/   38)...done 1 out of 1
 === MATCH ===
 File: "examples/really-bad-code.py"
 Lines: [4, 10]
@@ -96,7 +95,7 @@ Verbosity (-v): true
 Comparison threshold (-t): 5 (Levenshtein distance)
 Minimum length of first line before block consideration (-l): 1
 Minimum length of block before consideration (-b): 4
-Now comparing "examples/really-bad-code.py" and "examples/really-bad-code.py" (   37/   38)...done 1 out of 1
+Now comparing "examples/really-bad-code.py" (   37/   38)...done 1 out of 1
 === MATCH ===
 File: "examples/really-bad-code.py"
 Lines: [15, 25]
@@ -165,4 +164,4 @@ know.
 
 ## In the works
 
-- Pooled threads
+- Interactive HTML reports from generated JSON
