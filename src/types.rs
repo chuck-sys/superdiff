@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 
-use itertools::Itertools;
 use serde::Serialize;
 
 /// A structure to easily move parameters from one place to another.
@@ -34,71 +33,126 @@ pub struct Matches(pub HashMap<Match, Vec<Match>>);
 /// Used to check which key some match belongs to, in order to insert into `Matches`.
 pub struct MatchesLookup(pub HashMap<Match, Match>);
 
-/// A bunch of matches that are deemed similar.
-///
-/// Basically, this is just the `Matches` structure flattened into a list.
-#[derive(Serialize)]
-pub struct FlattenedMatch(pub Vec<Match>);
+#[derive(Serialize, Clone)]
+pub struct JsonFileInfo {
+    pub count_blocks: usize,
+}
 
 #[derive(Serialize)]
-pub struct FlattenedMatches(pub Vec<FlattenedMatch>);
+pub struct JsonBlockInfo {
+    pub starting_line: usize,
+    pub block_length: usize,
+}
 
-impl FlattenedMatch {
-    fn from_kv_matches(initial_match: Match, mut other_matches: Vec<Match>) -> Self {
-        other_matches.insert(0, initial_match);
-        FlattenedMatch(other_matches)
+#[derive(Serialize)]
+pub struct JsonMatch {
+    pub files: HashMap<PathBuf, JsonFileInfo>,
+    pub blocks: HashMap<PathBuf, Vec<JsonBlockInfo>>,
+}
+
+#[derive(Serialize)]
+pub struct JsonRoot {
+    pub version: String,
+    pub files: HashMap<PathBuf, JsonFileInfo>,
+    pub matches: Vec<JsonMatch>,
+}
+
+impl JsonBlockInfo {
+    fn from_match(m: Match) -> Self {
+        JsonBlockInfo {
+            starting_line: m.line,
+            block_length: m.size,
+        }
     }
 }
 
-impl fmt::Display for FlattenedMatch {
+impl JsonMatch {
+    fn from_kv_matches(initial_match: Match, other_matches: Vec<Match>) -> Self {
+        let mut blocks = HashMap::new();
+        let mut files = HashMap::new();
+        files.insert(initial_match.file.clone(), JsonFileInfo { count_blocks: 1 });
+        blocks.insert(initial_match.file.clone(), vec![JsonBlockInfo::from_match(initial_match)]);
+
+        for m in other_matches {
+            if let Some(fileinfo) = files.get_mut(&m.file) {
+                fileinfo.count_blocks += 1;
+            } else {
+                files.insert(m.file.clone(), JsonFileInfo { count_blocks: 1 });
+            }
+
+            if let Some(v) = blocks.get_mut(&m.file) {
+                v.push(JsonBlockInfo::from_match(m));
+            } else {
+                blocks.insert(m.file.clone(), vec![JsonBlockInfo::from_match(m)]);
+            }
+        }
+
+        JsonMatch {
+            files,
+            blocks,
+        }
+    }
+}
+
+impl fmt::Display for JsonMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "=== MATCH ===\n{}\n",
-            self.0
-                .iter()
-                .group_by(|item| &item.file)
-                .into_iter()
-                .map(|(key, group)| {
-                    let group: Vec<&Match> = group.collect();
-                    format!(
-                        "File: {:?}\nLines: {:?}\nSize: {}",
-                        key,
-                        group.iter().map(|x| x.line).collect::<Vec<usize>>(),
-                        group[0].size,
-                    )
-                })
+            self.blocks.iter()
+                .map(|(filename, infos)| format!("File: {}\nLines: {:?}\nSize: {}",
+                    filename.display(),
+                    infos.iter().map(|info| info.starting_line).collect::<Vec<usize>>(),
+                    infos[0].block_length,
+                ))
                 .collect::<Vec<String>>()
                 .join("\n---\n")
         )
     }
 }
 
-impl FlattenedMatches {
+impl JsonRoot {
     pub fn from_matches(m: Matches) -> Self {
-        FlattenedMatches(
-            m.0.into_iter()
-                .map(|(k, v)| FlattenedMatch::from_kv_matches(k, v))
-                .collect(),
-        )
+        let version = clap::crate_version!().to_owned();
+        let matches: Vec<JsonMatch> = m.0.into_iter()
+            .map(|(k, v)| JsonMatch::from_kv_matches(k, v))
+            .collect();
+        let jm_files = matches.iter()
+            .map(|jm| jm.files.clone());
+        let mut files: HashMap<PathBuf, JsonFileInfo> = HashMap::new();
+
+        for jmf in jm_files {
+            for (filename, info) in jmf {
+                if let Some(v) = files.get_mut(&filename) {
+                    v.count_blocks += info.count_blocks;
+                } else {
+                    files.insert(filename, info);
+                }
+            }
+        }
+
+        JsonRoot {
+            version,
+            files,
+            matches,
+        }
     }
 
     pub fn unique_matches(&self) -> usize {
-        self.0.len()
+        self.matches.len()
     }
 
     pub fn json(&self) -> String {
-        serde_json::to_string(&self.0).unwrap_or("[]".to_owned())
+        serde_json::to_string(&self).unwrap_or("{}".to_owned())
     }
 }
 
-impl fmt::Display for FlattenedMatches {
+impl fmt::Display for JsonRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
-            self.0
-                .iter()
+            self.matches.iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
                 .join("\n")

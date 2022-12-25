@@ -1,6 +1,6 @@
 use crate::cli::{Cli, ReportingMode};
 use crate::math::combinations;
-use crate::types::{CompFile, FlattenedMatches};
+use crate::types::{CompFile, JsonRoot};
 
 use std::path::PathBuf;
 
@@ -42,7 +42,7 @@ pub fn skip_comparison(args: &Cli, f1: &PathBuf, f2: &PathBuf) {
     }
 }
 
-pub fn matches(args: &Cli, matches: &FlattenedMatches) {
+pub fn matches(args: &Cli, matches: &JsonRoot) {
     match args.reporting_mode {
         ReportingMode::Json => {
             println!("{}", matches.json());
@@ -53,7 +53,7 @@ pub fn matches(args: &Cli, matches: &FlattenedMatches) {
     }
 }
 
-pub fn conclusion(args: &Cli, matches: &FlattenedMatches) {
+pub fn conclusion(args: &Cli, matches: &JsonRoot) {
     if args.reporting_mode == ReportingMode::Text && args.verbose {
         eprintln!(
             "A total of {} unique match(es) were found in the {} file(s).",
