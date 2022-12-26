@@ -27,7 +27,7 @@ function! superdiff#query_local_matches() abort
     call sort(loclist, {i1, i2 -> i1.lnum - i2.lnum})
     call setloclist(bufnr, loclist)
 
-    if !g:superdiff_supress_lopen
+    if !g:superdiff_suppress_lopen
         lopen
     endif
 endfunction
@@ -64,7 +64,7 @@ function! superdiff#query_matches()
     call uniq(loclist)
     call setloclist(bufnr, loclist)
 
-    if !g:superdiff_supress_lopen
+    if !g:superdiff_suppress_lopen
         lopen
     endif
 endfunction
@@ -124,10 +124,6 @@ endfunction
 function! s:blocks_to_loclist(current_filename, blocks)
     let loclist = []
     for [filename, block_infos] in items(a:blocks)
-        if filename == a:current_filename
-            continue
-        endif
-
         for i in block_infos
             call add(loclist, {
                         \ 'filename': filename,

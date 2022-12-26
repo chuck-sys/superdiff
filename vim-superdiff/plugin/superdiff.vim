@@ -22,8 +22,8 @@ if !exists('g:superdiff_hl_on_call_local')
     let g:superdiff_hl_on_call_local = v:true
 endif
 
-if !exists('g:superdiff_supress_lopen')
-    let g:superdiff_supress_lopen = v:true
+if !exists('g:superdiff_suppress_lopen')
+    let g:superdiff_suppress_lopen = v:true
 endif
 
 sign define SuperdiffMatch numhl=Match numhl=ErrorMsg
