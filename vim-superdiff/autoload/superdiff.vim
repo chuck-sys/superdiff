@@ -59,6 +59,10 @@ function! superdiff#query_matches()
         endif
     endfor
 
+    if empty(loclist)
+        echoerr 'superdiff: no matches on current line; view local matches by running :SDLocal'
+    endif
+
     call sort(loclist, {i1, i2 -> i1.lnum - i2.lnum})
     call sort(loclist, {i1, i2 -> i1.filename - i2.filename})
     call uniq(loclist)

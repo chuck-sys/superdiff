@@ -13,6 +13,7 @@ command! -nargs=0 SDUnload call superdiff#unload()
 command! -nargs=0 SDLocal call superdiff#query_local_matches()
 command! -nargs=0 SDQuery call superdiff#query_matches()
 command! -nargs=0 SDHLLocal call superdiff#hl_matches()
+command! -nargs=0 SDUnHL sign unplace * group=superdiff
 
 if !exists('g:superdiff_loctext_maxwidth')
     let g:superdiff_loctext_maxwidth = 60
