@@ -80,19 +80,24 @@ fn get_matches_from_2_files(
 
                 let (original_block, matching_block) =
                     Match::from_compfiles(&f1, &f2, block_length);
-                let k = where_is_match
-                    .0
-                    .get(&original_block)
-                    .unwrap_or(&original_block);
+                let k = if let Some(refblock) = where_is_match.0.get(&original_block) {
+                    refblock
+                } else if let Some(refblock) = where_is_match.0.get(&matching_block) {
+                    refblock
+                } else {
+                    &original_block
+                };
 
                 if let Some(v) = matches_hash.0.get_mut(k) {
-                    v.push(matching_block.clone());
+                    if !v.contains(&matching_block) {
+                        v.push(matching_block.clone());
+                    }
                 } else {
                     matches_hash
                         .0
                         .insert(original_block.clone(), vec![matching_block.clone()]);
                 }
-                where_is_match.0.insert(matching_block, original_block);
+                where_is_match.0.insert(matching_block, k.clone());
 
                 f2.start += block_length;
                 max_block_length = std::cmp::max(max_block_length, block_length);
