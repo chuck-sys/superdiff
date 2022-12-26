@@ -16,36 +16,20 @@ function! superdiff#query_local_matches() abort
         echoerr 'superdiff: no file loaded; did you forget to :SDLoad?'
     endif
 
-    let lineno = line('.')
-
-    let loclist = []
     let bufnr = bufnr('%')
     let current_filename = expand('%')
-    for m in s:json.matches
-        if !has_key(m.files, current_filename)
-            continue
-        endif
+    let loclist = s:collect_blocks_by_filename_to_loclist(current_filename, s:json.matches)
 
-        for block_info in m.blocks[current_filename]
-            let lnum = block_info.starting_line
-            let size = block_info.block_length - 1
-            if size > 0
-                let text = s:truncate_line(lnum) . ' (' . l:size . ' more lines)'
-            else
-                let text = s:truncate_line(lnum)
-            endif
-
-            call add(loclist, {
-                        \ 'bufnr': bufnr,
-                        \ 'lnum': lnum,
-                        \ 'text': text,
-                        \ })
-        endfor
-    endfor
+    if g:superdiff_hl_on_call_local
+        call s:hl_loclist(loclist)
+    endif
 
     call sort(loclist, {i1, i2 -> i1.lnum - i2.lnum})
     call setloclist(bufnr, loclist)
-    lopen
+
+    if !g:superdiff_supress_lopen
+        lopen
+    endif
 endfunction
 
 function! superdiff#query_matches()
@@ -79,7 +63,62 @@ function! superdiff#query_matches()
     call sort(loclist, {i1, i2 -> i1.filename - i2.filename})
     call uniq(loclist)
     call setloclist(bufnr, loclist)
-    lopen
+
+    if !g:superdiff_supress_lopen
+        lopen
+    endif
+endfunction
+
+function! superdiff#hl_matches()
+    if !s:json_loaded
+        echoerr 'superdiff: no file loaded; did you forget to :SDLoad?'
+    endif
+
+    let current_filename = expand('%')
+    let loclist = s:collect_blocks_by_filename_to_loclist(current_filename, s:json.matches)
+
+    call s:hl_loclist(loclist)
+endfunction
+
+function! s:hl_loclist(loclist)
+    let bufnr = bufnr('%')
+    call sign_unplace('superdiff', { 'buffer': bufnr })
+
+    for item in a:loclist
+        for lineno in range(item.lnum, item.lnum + item.size)
+            call sign_place(0, 'superdiff', 'SuperdiffMatch', bufnr, { 'lnum': lineno, 'priority': 5 })
+        endfor
+    endfor
+endfunction
+
+function! s:collect_blocks_by_filename_to_loclist(filename, matches)
+    let bufnr = bufnr('%')
+    let loclist = []
+
+    for m in a:matches
+        if !has_key(m.files, a:filename)
+            continue
+        endif
+
+        for block_info in m.blocks[a:filename]
+            let lnum = block_info.starting_line
+            let size = block_info.block_length - 1
+            if size > 0
+                let text = s:truncate_line(lnum) . ' (' . l:size . ' more lines)'
+            else
+                let text = s:truncate_line(lnum)
+            endif
+
+            call add(loclist, {
+                        \ 'bufnr': bufnr,
+                        \ 'lnum': lnum,
+                        \ 'size': size,
+                        \ 'text': text,
+                        \ })
+        endfor
+    endfor
+
+    return loclist
 endfunction
 
 function! s:blocks_to_loclist(current_filename, blocks)
@@ -93,6 +132,7 @@ function! s:blocks_to_loclist(current_filename, blocks)
             call add(loclist, {
                         \ 'filename': filename,
                         \ 'lnum': i.starting_line,
+                        \ 'size': i.block_length,
                         \ 'text': i.block_length . ' line(s)',
                         \ })
         endfor
