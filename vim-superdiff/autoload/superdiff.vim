@@ -20,6 +20,8 @@ function! superdiff#query_local_matches() abort
     let current_filename = expand('%')
     let loclist = s:collect_blocks_by_filename_to_loclist(current_filename, s:json.matches)
 
+    echon 'superdiff: found ' len(loclist) ' matching elements'
+
     if g:superdiff_hl_on_call_local
         call s:hl_loclist(loclist)
     endif
