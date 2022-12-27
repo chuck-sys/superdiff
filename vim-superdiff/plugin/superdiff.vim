@@ -20,11 +20,11 @@ if !exists('g:superdiff_loctext_maxwidth')
 endif
 
 if !exists('g:superdiff_hl_on_call_local')
-    let g:superdiff_hl_on_call_local = v:true
+    let g:superdiff_hl_on_call_local = 1
 endif
 
 if !exists('g:superdiff_suppress_lopen')
-    let g:superdiff_suppress_lopen = v:true
+    let g:superdiff_suppress_lopen = 1
 endif
 
 sign define SuperdiffMatch numhl=Match numhl=ErrorMsg

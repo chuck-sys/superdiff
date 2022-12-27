@@ -1,0 +1,100 @@
+*superdiff.txt* Quickly navigate between similar code blocks.
+
+Author: Cheuk Yin Ng <https://cheuksblog.ca>
+License: Same as the `superdiff` script itself
+
+INTRODUCTION                                            *superdiff*
+
+Reading a long report from `superdiff` output takes some effort. This plugin
+reduces the effort required by putting everything into the Vim system (in
+terms of location lists and highlighting).
+
+TERMINOLOGY                                             *superdiff-terms*
+
+Matching block(s)
+
+A set of blocks that are found by `superdiff` to be similar to other matching
+blocks.
+
+TYPICAL WORKFLOW                                        *superdiff-workflow*
+
+We'll start from the terminal (not Vim yet).
+
+1. Change directory to the project directory.
+2. Run the `superdiff` script on relevant files. Remember to set
+   `--reporting-mode` to `json`.
+3. Open Vim in the project directory.
+4. Run |:SDLoad| {json} to load the report into memory
+5. Open a file to edit.
+6. Run |:SDLocal| or |:SDHLLocal| to programmically or visually mark where
+   matching blocks are.
+7. Navigate the cursor until it is inside one of these matching blocks.
+8. Run |:SDQuery| to programmically mark blocks that are similar to the one
+   you are hovering over.
+9. Navigate to these similar blocks using |location-list| functions such as
+   |:lnext| or |:lopen|.
+
+COMMANDS                                                *superdiff-commands*
+
+:SDLoad {json}                                          *:SDLoad*
+
+        Load the entire `JSON` report into memory. You must do this before
+        running any other command.
+
+:SDLocal                                                *:SDLocal*
+
+        Populate location list with all matching blocks from the current file.
+        If |g:superdiff_hl_on_call_local| is `1`, also highlights the
+        lines that contain matching blocks in the gutter. If
+        |g:superdiff_suppress_lopen| is `1`, does not open the location list.
+
+        You can navigate through the matches using |:lnext|, |:lprev|, and
+        other |location-list| functions.
+
+:SDQuery                                                *:SDQuery*
+
+        Populate location list with all blocks that are a part of the current
+        line. Does not highlight any of them.
+
+:SDHLLocal                                              *:SDHLLocal*
+
+        Highlights all matching blocks from the current file.
+
+:SDUnHL                                                 *:SDUnHL*
+
+        Removes all highlighting of matching blocks from all files. Equivalent
+        to the following:
+        >
+        sign unplace * group=superdiff
+        <
+
+OPTIONS                                                 *superdiff-options*
+
+g:loaded_superdiff                                      *g:loaded_superdiff*
+
+        Automatically set when this plugin is loaded. If you want to not load
+        this plugin, set this to `0` in your |vimrc|.
+
+        Default: `1`
+
+g:superdiff_hl_on_call_local                            *g:superdiff_hl_on_call_local*
+
+        Highlights matching line numbers like in |:SDHLLocal| whenever you
+        call |:SDLocal|. Set to `0` if you don't want it to automatically
+        highlight matching line numbers when you call that function.
+
+        Default: `1`
+
+g:superdiff_loctext_maxwidth                            *g:superdiff_loctext_maxwidth*
+
+        Max width of the line of text in |setloclist()| before truncation.
+
+        Default: `60`
+
+g:superdiff_suppress_lopen                               *g:superdiff_suppress_lopen*
+
+        Whether or not to call |:lopen| after |:SDLocal| or |:SDQuery|.
+
+        Default: `1`
+
+ vim:et:ft=help:norl:
