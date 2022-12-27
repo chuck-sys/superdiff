@@ -2,6 +2,13 @@
 name = "superdiff"
 version = "2.0.1"
 edition = "2021"
+license = "GPL-3.0"
+description = "Search your codebase for similar blocks"
+homepage = "https://github.com/cheukyin699/superdiff"
+repository = "https://github.com/cheukyin699/superdiff"
+readme = "README.md"
+categories = ["command-line-utilities"]
+keywords = ["code-analysis", "duplicate-finding"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
