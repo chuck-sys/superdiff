@@ -163,6 +163,19 @@ $ cat output.json | jq 'map(select((. | any(.line <= 30)) and (.[0].size as $len
 **Note:** If anyone finds a better way of making the `jq` query, please make a pull request and/or let me
 know.
 
+## Vim integration
+
+It's kind of work-in-progress at the moment, but here's what we have:
+
+- Load JSON with `:SDLoad` (make sure you are in the same directory you ran `superdiff`)
+- Open a file to edit
+- Run `:SDLocal` to highlight matching blocks of code
+- Run `:SDQuery` on a matching block to find other blocks of similar code
+
+Check the vimdocs for more options and commands.
+
+[![asciicast](https://asciinema.org/a/548069.svg)](https://asciinema.org/a/548069)
+
 ## In the works
 
 None at the moment.
