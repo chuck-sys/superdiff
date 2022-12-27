@@ -13,6 +13,7 @@ If so, this might be the tool for you!
 - `JSON` reporting for `jq` integeration
 - Fast enough (00:03:39 for a 17k LOC with block size 10 and Levenshtein threshold 10)
 - Can check for duplicate code across multiple files
+- Vim integration!
 
 ## Limitations
 
