@@ -89,7 +89,7 @@ Wow! That's pretty nice that you found that! But maybe there are places in the f
 copies, but are similar enough.
 
 ```console
-$ superdiff -vv -b 4 -t 5 examples/really-bad-code.py
+$ superdiff -b 4 -t 5 examples/really-bad-code.py
 1 file(s) ["examples/really-bad-code.py"]
 Verbosity (-v): true
 Comparison threshold (-t): 5 (Levenshtein distance)
