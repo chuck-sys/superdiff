@@ -117,46 +117,75 @@ duplicate code, so you do the following:
 ```console
 $ superdiff --reporting-mode json -b 5 -t 5 examples/really-bad-code.py > output.json
 $ cat output.json | jq
-[
-  [
-    {
-      "file": "examples/really-bad-code.py",
-      "line": 5,
-      "size": 5
-    },
-    {
-      "file": "examples/really-bad-code.py",
-      "line": 11,
-      "size": 5
+{
+  "version": "2.0.2",
+  "files": {
+    "examples/really-bad-code.py": {
+      "count_blocks": 4
     }
-  ],
-  [
+  },
+  "matches": [
     {
-      "file": "examples/really-bad-code.py",
-      "line": 16,
-      "size": 10
+      "files": {
+        "examples/really-bad-code.py": {
+          "count_blocks": 2
+        }
+      },
+      "blocks": {
+        "examples/really-bad-code.py": [
+          {
+            "starting_line": 5,
+            "block_length": 5
+          },
+          {
+            "starting_line": 11,
+            "block_length": 5
+          }
+        ]
+      }
     },
     {
-      "file": "examples/really-bad-code.py",
-      "line": 26,
-      "size": 10
+      "files": {
+        "examples/really-bad-code.py": {
+          "count_blocks": 2
+        }
+      },
+      "blocks": {
+        "examples/really-bad-code.py": [
+          {
+            "starting_line": 16,
+            "block_length": 10
+          },
+          {
+            "starting_line": 26,
+            "block_length": 10
+          }
+        ]
+      }
     }
   ]
-]
-$ cat output.json | jq 'map(select((. | any(.line <= 30)) and (.[0].size as $length | . | any(.line + $length > 30))))'
+}
+$ cat output.json | jq '.matches | map(select((.blocks."examples/really-bad-code.py" | any(.starting_line <= 30 and .starting_line + .block_length >= 30))))'
 [
-  [
-    {
-      "file": "examples/really-bad-code.py",
-      "line": 16,
-      "size": 10
+  {
+    "files": {
+      "examples/really-bad-code.py": {
+        "count_blocks": 2
+      }
     },
-    {
-      "file": "examples/really-bad-code.py",
-      "line": 26,
-      "size": 10
+    "blocks": {
+      "examples/really-bad-code.py": [
+        {
+          "starting_line": 16,
+          "block_length": 10
+        },
+        {
+          "starting_line": 26,
+          "block_length": 10
+        }
+      ]
     }
-  ]
+  }
 ]
 ```
 
