@@ -81,22 +81,23 @@ fn get_matches_from_2_files(
                 let (original_block, matching_block) =
                     Match::from_compfiles(&f1, &f2, block_length);
                 let k = if let Some(refblock) = where_is_match.0.get(&original_block) {
-                    refblock
+                    refblock.clone()
                 } else if let Some(refblock) = where_is_match.0.get(&matching_block) {
-                    refblock
+                    refblock.clone()
                 } else {
-                    &original_block
+                    original_block.clone()
                 };
 
-                if let Some(v) = matches_hash.0.get_mut(k) {
-                    if !v.contains(&matching_block) {
-                        v.push(matching_block.clone());
-                    }
-                } else {
-                    matches_hash
-                        .0
-                        .insert(original_block.clone(), vec![matching_block.clone()]);
-                }
+                matches_hash
+                    .0
+                    .entry(k.clone())
+                    .and_modify(|v| {
+                        if !v.contains(&matching_block) {
+                            v.push(matching_block.clone());
+                        }
+                    })
+                    .or_insert(vec![matching_block.clone()]);
+
                 where_is_match.0.insert(matching_block, k.clone());
 
                 f2.start += block_length;

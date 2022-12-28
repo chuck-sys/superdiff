@@ -59,7 +59,7 @@ pub struct JsonRoot {
 
 impl JsonBlockInfo {
     fn from_match(m: Match) -> Self {
-        JsonBlockInfo {
+        Self {
             starting_line: m.line,
             block_length: m.size,
         }
@@ -71,26 +71,24 @@ impl JsonMatch {
         let mut blocks = HashMap::new();
         let mut files = HashMap::new();
         files.insert(initial_match.file.clone(), JsonFileInfo { count_blocks: 1 });
-        blocks.insert(initial_match.file.clone(), vec![JsonBlockInfo::from_match(initial_match)]);
+        blocks.insert(
+            initial_match.file.clone(),
+            vec![JsonBlockInfo::from_match(initial_match)],
+        );
 
         for m in other_matches {
-            if let Some(fileinfo) = files.get_mut(&m.file) {
-                fileinfo.count_blocks += 1;
-            } else {
-                files.insert(m.file.clone(), JsonFileInfo { count_blocks: 1 });
-            }
-
-            if let Some(v) = blocks.get_mut(&m.file) {
-                v.push(JsonBlockInfo::from_match(m));
-            } else {
-                blocks.insert(m.file.clone(), vec![JsonBlockInfo::from_match(m)]);
-            }
+            let f = m.clone().file;
+            files
+                .entry(f.clone())
+                .and_modify(|info| info.count_blocks += 1)
+                .or_insert(JsonFileInfo { count_blocks: 1 });
+            blocks
+                .entry(f)
+                .and_modify(|v| v.push(JsonBlockInfo::from_match(m.clone())))
+                .or_insert(vec![JsonBlockInfo::from_match(m)]);
         }
 
-        JsonMatch {
-            files,
-            blocks,
-        }
+        Self { files, blocks }
     }
 }
 
@@ -99,10 +97,15 @@ impl fmt::Display for JsonMatch {
         write!(
             f,
             "=== MATCH ===\n{}\n",
-            self.blocks.iter()
-                .map(|(filename, infos)| format!("File: {}\nLines: {:?}\nSize: {}",
+            self.blocks
+                .iter()
+                .map(|(filename, infos)| format!(
+                    "File: {}\nLines: {:?}\nSize: {}",
                     filename.display(),
-                    infos.iter().map(|info| info.starting_line).collect::<Vec<usize>>(),
+                    infos
+                        .iter()
+                        .map(|info| info.starting_line)
+                        .collect::<Vec<usize>>(),
                     infos[0].block_length,
                 ))
                 .collect::<Vec<String>>()
@@ -114,24 +117,23 @@ impl fmt::Display for JsonMatch {
 impl JsonRoot {
     pub fn from_matches(m: Matches) -> Self {
         let version = clap::crate_version!().to_owned();
-        let matches: Vec<JsonMatch> = m.0.into_iter()
-            .map(|(k, v)| JsonMatch::from_kv_matches(k, v))
-            .collect();
-        let jm_files = matches.iter()
-            .map(|jm| jm.files.clone());
+        let matches: Vec<JsonMatch> =
+            m.0.into_iter()
+                .map(|(k, v)| JsonMatch::from_kv_matches(k, v))
+                .collect();
+        let jm_files = matches.iter().map(|jm| jm.files.clone());
         let mut files: HashMap<PathBuf, JsonFileInfo> = HashMap::new();
 
         for jmf in jm_files {
             for (filename, info) in jmf {
-                if let Some(v) = files.get_mut(&filename) {
-                    v.count_blocks += info.count_blocks;
-                } else {
-                    files.insert(filename, info);
-                }
+                files
+                    .entry(filename)
+                    .and_modify(|v| v.count_blocks += info.count_blocks)
+                    .or_insert(info);
             }
         }
 
-        JsonRoot {
+        Self {
             version,
             files,
             matches,
@@ -152,7 +154,8 @@ impl fmt::Display for JsonRoot {
         write!(
             f,
             "{}",
-            self.matches.iter()
+            self.matches
+                .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
                 .join("\n")
@@ -166,12 +169,12 @@ pub type FileCache = HashMap<PathBuf, Vec<String>>;
 impl Match {
     pub fn from_compfiles(f1: &CompFile, f2: &CompFile, block_length: usize) -> (Self, Self) {
         (
-            Match {
+            Self {
                 file: f1.file.clone(),
                 line: f1.start + 1,
                 size: block_length,
             },
-            Match {
+            Self {
                 file: f2.file.clone(),
                 line: f2.start + 1,
                 size: block_length,
@@ -195,12 +198,12 @@ impl CompFile {
     pub fn from_files(f1: &PathBuf, f2: &PathBuf, cache: &mut FileCache) -> Option<(Self, Self)> {
         match (cache.get(f1), cache.get(f2)) {
             (Some(lines1), Some(lines2)) => Some((
-                CompFile {
+                Self {
                     file: f1.clone(),
                     lines: lines1.clone(),
                     start: 0,
                 },
-                CompFile {
+                Self {
                     file: f2.clone(),
                     lines: lines2.clone(),
                     start: 0,
