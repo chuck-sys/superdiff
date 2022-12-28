@@ -155,6 +155,7 @@ pub fn get_all_matches(args: &Cli) -> Matches {
 /// maximum.
 ///
 /// This algorithm runs at a time complexity of O(mn).
+#[allow(clippy::needless_range_loop)]
 pub fn levenshtein_distance(x: &str, y: &str, threshold: usize) -> usize {
     let (x, y): (Vec<char>, Vec<char>) = (x.chars().collect(), y.chars().collect());
     let (m, n) = (x.len(), y.len());

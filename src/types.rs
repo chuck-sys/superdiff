@@ -57,8 +57,8 @@ pub struct JsonRoot {
     pub matches: Vec<JsonMatch>,
 }
 
-impl JsonBlockInfo {
-    fn from_match(m: Match) -> Self {
+impl From<Match> for JsonBlockInfo {
+    fn from(m: Match) -> Self {
         Self {
             starting_line: m.line,
             block_length: m.size,
@@ -66,14 +66,14 @@ impl JsonBlockInfo {
     }
 }
 
-impl JsonMatch {
-    fn from_kv_matches(initial_match: Match, other_matches: Vec<Match>) -> Self {
+impl From<(Match, Vec<Match>)> for JsonMatch {
+    fn from((initial_match, other_matches): (Match, Vec<Match>)) -> Self {
         let mut blocks = HashMap::new();
         let mut files = HashMap::new();
         files.insert(initial_match.file.clone(), JsonFileInfo { count_blocks: 1 });
         blocks.insert(
             initial_match.file.clone(),
-            vec![JsonBlockInfo::from_match(initial_match)],
+            vec![JsonBlockInfo::from(initial_match)],
         );
 
         for m in other_matches {
@@ -84,8 +84,8 @@ impl JsonMatch {
                 .or_insert(JsonFileInfo { count_blocks: 1 });
             blocks
                 .entry(f)
-                .and_modify(|v| v.push(JsonBlockInfo::from_match(m.clone())))
-                .or_insert(vec![JsonBlockInfo::from_match(m)]);
+                .and_modify(|v| v.push(JsonBlockInfo::from(m.clone())))
+                .or_insert(vec![JsonBlockInfo::from(m)]);
         }
 
         Self { files, blocks }
@@ -114,12 +114,12 @@ impl fmt::Display for JsonMatch {
     }
 }
 
-impl JsonRoot {
-    pub fn from_matches(m: Matches) -> Self {
+impl From<Matches> for JsonRoot {
+    fn from(m: Matches) -> Self {
         let version = clap::crate_version!().to_owned();
         let matches: Vec<JsonMatch> =
             m.0.into_iter()
-                .map(|(k, v)| JsonMatch::from_kv_matches(k, v))
+                .map(JsonMatch::from)
                 .collect();
         let jm_files = matches.iter().map(|jm| jm.files.clone());
         let mut files: HashMap<PathBuf, JsonFileInfo> = HashMap::new();
@@ -139,7 +139,9 @@ impl JsonRoot {
             matches,
         }
     }
+}
 
+impl JsonRoot {
     pub fn unique_matches(&self) -> usize {
         self.matches.len()
     }
