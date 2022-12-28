@@ -1,9 +1,10 @@
 use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Default)]
 pub enum ReportingMode {
     /// Plain text
+    #[default]
     Text,
     /// As a list of JSON objects
     Json,
