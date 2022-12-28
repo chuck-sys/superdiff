@@ -206,7 +206,7 @@ pub fn levenshtein_distance(x: &str, y: &str, threshold: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::comp::levenshtein_distance;
+    use super::levenshtein_distance;
 
     macro_rules! check_lev {
         ( $a:literal, $b:literal, $t:literal ) => {{

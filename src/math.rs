@@ -21,7 +21,7 @@ pub fn combinations(n: usize, k: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::math::{factorial, combinations};
+    use super::{factorial, combinations};
 
     #[test]
     fn test_factorial() {
