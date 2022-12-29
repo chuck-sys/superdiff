@@ -4,11 +4,19 @@ let s:json = {}
 function! superdiff#load(filename) abort
     let s:json = json_decode(readfile(a:filename))
     let s:json_loaded = v:true
+
+    if empty(s:json.matches)
+        echoerr 'superdiff: file loaded with zero matches'
+    else
+        echon 'superdiff: file loaded with ' len(s:json.matches) ' matches'
+    endif
 endfunction
 
 function! superdiff#unload()
     let s:json = {}
     let s:json_loaded = v:false
+
+    echon 'superdiff: file unloaded from memory'
 endfunction
 
 function! superdiff#query_local_matches() abort
@@ -20,7 +28,12 @@ function! superdiff#query_local_matches() abort
     let current_filename = expand('%')
     let loclist = s:collect_blocks_by_filename_to_loclist(current_filename, s:json.matches)
 
-    echon 'superdiff: found ' len(loclist) ' matching elements'
+    if empty(loclist)
+        echon 'superdiff: no matches found'
+        return
+    else
+        echon 'superdiff: found ' len(loclist) ' matching elements'
+    endif
 
     if g:superdiff_hl_on_call_local
         call s:hl_loclist(loclist)
@@ -63,6 +76,8 @@ function! superdiff#query_matches()
 
     if empty(loclist)
         echoerr 'superdiff: no matches on current line; view local matches by running :SDLocal'
+    else
+        echon 'superdiff: found ' len(loclist) ' matching elements'
     endif
 
     call sort(loclist, {i1, i2 -> i1.lnum - i2.lnum})
