@@ -157,6 +157,7 @@ pub fn get_all_matches(args: &Cli) -> Matches {
 /// This algorithm runs at a time complexity of O(mn).
 #[allow(clippy::needless_range_loop)]
 pub fn levenshtein_distance(x: &str, y: &str, threshold: usize) -> usize {
+    // XXX According to analysis, `.collect()` takes a large portion of time
     let (x, y): (Vec<char>, Vec<char>) = (x.chars().collect(), y.chars().collect());
     let (m, n) = (x.len(), y.len());
     let mut d = vec![0usize; (m + 1) * (n + 1)];
