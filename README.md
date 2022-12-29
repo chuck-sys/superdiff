@@ -205,6 +205,18 @@ Check the vimdocs for more options and commands.
 
 [![asciicast](https://asciinema.org/a/548069.svg)](https://asciinema.org/a/548069)
 
+## Benchmark
+
+These numbers are here to give a ballpark estimate of how long something would take given some files. It
+is not scientific. I simply appended `time` to the beginning and copied the `real` time.
+
+The data used for this benchmark can be found in `scripts/populate-data.sh`.
+
+Version | Test name | Params | Time
+---|---|---|---
+2.0.3 | TerrariaClone | `-b 5 -t 5 json` | 40.284s
+2.0.3 | TerrariaClone | `-b 5 json` | 0.489s
+
 ## In the works
 
 None at the moment.
