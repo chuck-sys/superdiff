@@ -162,8 +162,14 @@ pub fn levenshtein_distance(x: &str, y: &str, threshold: usize) -> usize {
     let mut d = vec![0usize; (m + 1) * (n + 1)];
     let size = m + 1;
 
-    if threshold >= m + n {
+    // Distance is at most the length of the longer string
+    if threshold >= std::cmp::max(m, n) {
         return threshold;
+    }
+
+    // Distance is at least the absolute value of the difference in sizes of the two strings
+    if threshold < m.abs_diff(n) {
+        return threshold + 1;
     }
 
     for i in 1..(m + 1) {
