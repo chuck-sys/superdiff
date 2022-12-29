@@ -139,6 +139,19 @@ pub fn get_all_matches(args: &Cli) -> Matches {
     matches_hash
 }
 
+/// Make a `Vec<char>`.
+///
+/// We use a preallocated `Vec` instead of `.collect()` to avoid allocation penalties.
+fn to_char_vec(s: &str) -> Vec<char> {
+    let mut v = Vec::with_capacity(s.len());
+
+    for c in s.chars() {
+        v.push(c);
+    }
+
+    v
+}
+
 /// Compute the edit distance of 2 strings, with shortcuts.
 ///
 /// Modified from wikipedia pseudocode for matrix approach (no recursion).
@@ -157,8 +170,7 @@ pub fn get_all_matches(args: &Cli) -> Matches {
 /// This algorithm runs at a time complexity of O(mn).
 #[allow(clippy::needless_range_loop)]
 pub fn levenshtein_distance(x: &str, y: &str, threshold: usize) -> usize {
-    // XXX According to analysis, `.collect()` takes a large portion of time
-    let (x, y): (Vec<char>, Vec<char>) = (x.chars().collect(), y.chars().collect());
+    let (x, y) = (to_char_vec(x), to_char_vec(y));
     let (m, n) = (x.len(), y.len());
     let mut d = vec![0usize; (m + 1) * (n + 1)];
     let size = m + 1;
