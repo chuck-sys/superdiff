@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::path::PathBuf;
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 /// A structure to easily move parameters from one place to another.
 #[derive(Clone, Debug)]
@@ -15,7 +15,7 @@ pub struct CompFile {
 /// A matching block.
 ///
 /// Points to a single block of lines in some file.
-#[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize)]
+#[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct Match {
     pub file: PathBuf,
     pub line: usize,
@@ -33,24 +33,24 @@ pub struct Matches(pub HashMap<Match, Vec<Match>>);
 /// Used to check which key some match belongs to, in order to insert into `Matches`.
 pub struct MatchesLookup(pub HashMap<Match, Match>);
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Deserialize, PartialEq, Eq, Debug)]
 pub struct JsonFileInfo {
     pub count_blocks: usize,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
 pub struct JsonBlockInfo {
     pub starting_line: usize,
     pub block_length: usize,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Eq, Debug)]
 pub struct JsonMatch {
     pub files: HashMap<PathBuf, JsonFileInfo>,
     pub blocks: HashMap<PathBuf, Vec<JsonBlockInfo>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Eq, Debug)]
 pub struct JsonRoot {
     pub version: String,
     pub files: HashMap<PathBuf, JsonFileInfo>,
@@ -63,6 +63,30 @@ impl From<Match> for JsonBlockInfo {
             starting_line: m.line,
             block_length: m.size,
         }
+    }
+}
+
+impl PartialEq for JsonMatch {
+    fn eq(&self, other: &Self) -> bool {
+        if self.files != other.files || self.blocks.len() != other.blocks.len() {
+            return false;
+        }
+
+        for (k, v) in &self.blocks {
+            match other.blocks.get(k) {
+                Some(other_v) => {
+                    let (a_info, b_info): (HashSet<_>, HashSet<_>) = (v.iter().collect(), other_v.iter().collect());
+                    if a_info != b_info {
+                        return false;
+                    }
+                },
+                None => {
+                    return false;
+                },
+            }
+        }
+
+        true
     }
 }
 
@@ -148,6 +172,22 @@ impl JsonRoot {
 
     pub fn json(&self) -> String {
         serde_json::to_string(&self).unwrap_or("{}".to_owned())
+    }
+}
+
+impl PartialEq for JsonRoot {
+    fn eq(&self, other: &Self) -> bool {
+        if self.matches.len() != other.matches.len() {
+            return false;
+        }
+
+        for item in &self.matches {
+            if !other.matches.contains(item) {
+                return false;
+            }
+        }
+
+        true
     }
 }
 

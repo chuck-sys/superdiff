@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn test_lev_distance() {
         // Normal use of function
-        check_lev!("the same", "the same", 10, 0);
+        check_lev!("the same the same", "the same the same", 10, 0);
         check_lev!("kitten", "sitting", 3);
         check_lev!("train", "shine", 4);
         check_lev!("a", "aaa", 2);
