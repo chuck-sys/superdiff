@@ -28,7 +28,7 @@ $ superdiff -l 1 -b 7 examples/really-bad-code.py
 File: examples/really-bad-code.py
 Lines: [5, 11]
 Size: 5
-$ find src vim-superdiff -type f | superdiff -l 1 -b 7 -
+$ find src vim-superdiff -type f | superdiff -l 1 -b 7
 === MATCH ===
 File: src/types.rs
 Lines: [87, 185]

@@ -30,10 +30,7 @@ pub struct Cli {
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
 
-    /// Files to find the code blocks (use - to read from stdin)
-    ///
-    /// If only 1 file is provided, and it's name is -, take the files from `stdin` instead.
-    #[arg(required = true)]
+    /// Files to find the code blocks (leave empty to read from stdin)
     pub files: Vec<PathBuf>,
 
     /// How you want the information to be delivered
@@ -59,7 +56,7 @@ impl Cli {
     }
 
     pub fn files_from_stdin(&self) -> bool {
-        self.files.len() == 1 && self.files[0] == PathBuf::from("-")
+        self.files.is_empty()
     }
 
     pub fn print(&self) {

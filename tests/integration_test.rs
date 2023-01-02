@@ -49,10 +49,10 @@ fn it_could_probably_check_stdin() {
         line_threshold: 1,
         block_threshold: 20,
         verbose: true,
-        files: vec![PathBuf::from("-")],
+        files: vec![],
         reporting_mode: ReportingMode::Json,
     };
 
     assert!(args.files_from_stdin());
-    assert_eq!(args.files.len(), 1);
+    assert_eq!(args.files.len(), 0);
 }
