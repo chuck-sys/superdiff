@@ -20,6 +20,31 @@ If so, this might be the tool for you!
 - Not instantaneous for large files
 - Single-threaded
 
+## Short examples
+
+```console
+$ superdiff -l 1 -b 7 examples/really-bad-code.py
+=== MATCH ===
+File: examples/really-bad-code.py
+Lines: [5, 11]
+Size: 5
+$ find src vim-superdiff -type f | superdiff -l 1 -b 7 -
+=== MATCH ===
+File: src/types.rs
+Lines: [87, 185]
+Size: 7
+
+=== MATCH ===
+File: vim-superdiff/autoload/superdiff.vim
+Lines: [138, 154]
+Size: 7
+
+=== MATCH ===
+File: vim-superdiff/autoload/superdiff.vim
+Lines: [43, 86]
+Size: 7
+```
+
 ## Usage
 
 Say you have some file `examples/really-bad-code.py` that you want to inspect.
