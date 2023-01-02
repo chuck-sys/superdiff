@@ -30,6 +30,9 @@ pub struct Cli {
     pub verbose: bool,
 
     /// Files to find the code blocks
+    ///
+    /// If only 1 file is provided, and it the name is `-`, then take the files from `stdin`.
+    #[arg(required = true)]
     pub files: Vec<PathBuf>,
 
     /// How you want the information to be delivered
