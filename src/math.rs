@@ -21,7 +21,7 @@ pub fn combinations(n: usize, k: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{factorial, combinations};
+    use super::{combinations, factorial};
 
     #[test]
     fn test_factorial() {

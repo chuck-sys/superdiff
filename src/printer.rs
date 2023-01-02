@@ -51,7 +51,11 @@ pub fn skip_comparison(args: &Cli, f1: &PathBuf, f2: &PathBuf) {
         if f1 == f2 {
             eprintln!("Unable to open {} for reading", truncate_path(f1.clone()));
         } else {
-            eprintln!("Unable to open {} and {} for reading", truncate_path(f1.clone()), truncate_path(f2.clone()));
+            eprintln!(
+                "Unable to open {} and {} for reading",
+                truncate_path(f1.clone()),
+                truncate_path(f2.clone())
+            );
         }
     }
 }

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::path::PathBuf;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// A structure to easily move parameters from one place to another.
 #[derive(Clone, Debug)]
@@ -75,14 +75,15 @@ impl PartialEq for JsonMatch {
         for (k, v) in &self.blocks {
             match other.blocks.get(k) {
                 Some(other_v) => {
-                    let (a_info, b_info): (HashSet<_>, HashSet<_>) = (v.iter().collect(), other_v.iter().collect());
+                    let (a_info, b_info): (HashSet<_>, HashSet<_>) =
+                        (v.iter().collect(), other_v.iter().collect());
                     if a_info != b_info {
                         return false;
                     }
-                },
+                }
                 None => {
                     return false;
-                },
+                }
             }
         }
 
@@ -141,10 +142,7 @@ impl fmt::Display for JsonMatch {
 impl From<Matches> for JsonRoot {
     fn from(m: Matches) -> Self {
         let version = clap::crate_version!().to_owned();
-        let matches: Vec<JsonMatch> =
-            m.0.into_iter()
-                .map(JsonMatch::from)
-                .collect();
+        let matches: Vec<JsonMatch> = m.0.into_iter().map(JsonMatch::from).collect();
         let jm_files = matches.iter().map(|jm| jm.files.clone());
         let mut files: HashMap<PathBuf, JsonFileInfo> = HashMap::new();
 

@@ -1,5 +1,5 @@
 pub mod cli;
-pub mod math;
 pub mod comp;
-pub mod types;
+pub mod math;
 pub mod printer;
+pub mod types;

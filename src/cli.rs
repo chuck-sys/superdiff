@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
-use std::path::PathBuf;
 use std::io;
+use std::path::PathBuf;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Default)]
 pub enum ReportingMode {

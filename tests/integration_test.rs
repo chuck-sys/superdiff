@@ -1,9 +1,9 @@
 use superdiff::cli::{Cli, ReportingMode};
-use superdiff::types::JsonRoot;
 use superdiff::comp::get_all_matches;
+use superdiff::types::JsonRoot;
 
-use std::path::PathBuf;
 use std::fs::read_to_string;
+use std::path::PathBuf;
 
 fn terraria_clone_files() -> Vec<PathBuf> {
     vec![
@@ -35,7 +35,9 @@ fn it_outputs_correct_matches_for_terraria_clone() {
     };
 
     let matches = JsonRoot::from(get_all_matches(&args));
-    let expected: JsonRoot = serde_json::from_str(&read_to_string("tests/expected/terraria_clone_eq_b20.json").unwrap()).unwrap();
+    let expected: JsonRoot =
+        serde_json::from_str(&read_to_string("tests/expected/terraria_clone_eq_b20.json").unwrap())
+            .unwrap();
 
     assert_eq!(matches, expected);
 }
