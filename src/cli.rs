@@ -26,7 +26,7 @@ pub struct Cli {
     pub block_threshold: usize,
 
     /// Set to increase the details that are output
-    #[arg(short, long, default_value_t = true)]
+    #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
 
     /// Files to find the code blocks
