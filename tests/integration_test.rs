@@ -39,3 +39,18 @@ fn it_outputs_correct_matches_for_terraria_clone() {
 
     assert_eq!(matches, expected);
 }
+
+#[test]
+fn it_could_probably_check_stdin() {
+    let args = Cli {
+        lev_threshold: 0,
+        line_threshold: 1,
+        block_threshold: 20,
+        verbose: true,
+        files: vec![PathBuf::from("-")],
+        reporting_mode: ReportingMode::Json,
+    };
+
+    assert!(args.files_from_stdin());
+    assert_eq!(args.files.len(), 1);
+}

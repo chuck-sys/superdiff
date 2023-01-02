@@ -1,5 +1,6 @@
 use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
+use std::io;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Default)]
 pub enum ReportingMode {
@@ -44,6 +45,23 @@ pub struct Cli {
 }
 
 impl Cli {
+    pub fn populate_files_from_stdin(&mut self) {
+        let mut files: Vec<PathBuf> = Vec::new();
+
+        for line in io::stdin().lines() {
+            match line {
+                Ok(f) => files.push(f.into()),
+                Err(e) => panic!("{e}"),
+            }
+        }
+
+        self.files = files;
+    }
+
+    pub fn files_from_stdin(&self) -> bool {
+        self.files.len() == 1 && self.files[0] == PathBuf::from("-")
+    }
+
     pub fn print(&self) {
         if !self.verbose {
             return;
