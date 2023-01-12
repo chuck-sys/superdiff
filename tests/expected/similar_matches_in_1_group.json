@@ -1,0 +1,49 @@
+{
+    "version": "2.1.0",
+    "files": {
+        "examples/similar-matches-in-same-group/file1.txt": {
+            "count_blocks": 1
+        },
+        "examples/similar-matches-in-same-group/file2.txt": {
+            "count_blocks": 1
+        },
+        "examples/similar-matches-in-same-group/file3.txt": {
+            "count_blocks": 1
+        }
+    },
+    "matches": [
+        {
+            "files": {
+                "examples/similar-matches-in-same-group/file2.txt": {
+                    "count_blocks": 1
+                },
+                "examples/similar-matches-in-same-group/file1.txt": {
+                    "count_blocks": 1
+                },
+                "examples/similar-matches-in-same-group/file3.txt": {
+                    "count_blocks": 1
+                }
+            },
+            "blocks": {
+                "examples/similar-matches-in-same-group/file2.txt": [
+                    {
+                        "starting_line": 1,
+                        "block_length": 11
+                    }
+                ],
+                "examples/similar-matches-in-same-group/file3.txt": [
+                    {
+                        "starting_line": 1,
+                        "block_length": 11
+                    }
+                ],
+                "examples/similar-matches-in-same-group/file1.txt": [
+                    {
+                        "starting_line": 1,
+                        "block_length": 11
+                    }
+                ]
+            }
+        }
+    ]
+}

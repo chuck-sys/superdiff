@@ -5,21 +5,41 @@ use superdiff::types::JsonRoot;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
+macro_rules! vec_pathbuf {
+    ( $( $x:expr ),* ) => {
+        {
+            vec![
+                $(
+                    PathBuf::from($x),
+                )*
+            ]
+        }
+    };
+}
+
 fn terraria_clone_files() -> Vec<PathBuf> {
-    vec![
-        PathBuf::from("examples/TerrariaClone/src/Chunk.java"),
-        PathBuf::from("examples/TerrariaClone/src/DoubleContainer.java"),
-        PathBuf::from("examples/TerrariaClone/src/Entity.java"),
-        PathBuf::from("examples/TerrariaClone/src/Inventory.java"),
-        PathBuf::from("examples/TerrariaClone/src/ItemCollection.java"),
-        PathBuf::from("examples/TerrariaClone/src/LightConverter.java"),
-        PathBuf::from("examples/TerrariaClone/src/PerlinNoise.java"),
-        PathBuf::from("examples/TerrariaClone/src/Player.java"),
-        PathBuf::from("examples/TerrariaClone/src/RandConverter.java"),
-        PathBuf::from("examples/TerrariaClone/src/TerrariaClone.java"),
-        PathBuf::from("examples/TerrariaClone/src/TextField.java"),
-        PathBuf::from("examples/TerrariaClone/src/World.java"),
-        PathBuf::from("examples/TerrariaClone/src/WorldContainer.java"),
+    vec_pathbuf![
+        "examples/TerrariaClone/src/Chunk.java",
+        "examples/TerrariaClone/src/DoubleContainer.java",
+        "examples/TerrariaClone/src/Entity.java",
+        "examples/TerrariaClone/src/Inventory.java",
+        "examples/TerrariaClone/src/ItemCollection.java",
+        "examples/TerrariaClone/src/LightConverter.java",
+        "examples/TerrariaClone/src/PerlinNoise.java",
+        "examples/TerrariaClone/src/Player.java",
+        "examples/TerrariaClone/src/RandConverter.java",
+        "examples/TerrariaClone/src/TerrariaClone.java",
+        "examples/TerrariaClone/src/TextField.java",
+        "examples/TerrariaClone/src/World.java",
+        "examples/TerrariaClone/src/WorldContainer.java"
+    ]
+}
+
+fn similar_matches_files() -> Vec<PathBuf> {
+    vec_pathbuf![
+        "examples/similar-matches-in-same-group/file1.txt",
+        "examples/similar-matches-in-same-group/file3.txt",
+        "examples/similar-matches-in-same-group/file2.txt"
     ]
 }
 
@@ -38,6 +58,26 @@ fn it_outputs_correct_matches_for_terraria_clone() {
     let expected: JsonRoot =
         serde_json::from_str(&read_to_string("tests/expected/terraria_clone_eq_b20.json").unwrap())
             .unwrap();
+
+    assert_eq!(matches, expected);
+}
+
+#[test]
+fn it_puts_all_matches_in_same_group() {
+    let args = Cli {
+        lev_threshold: 5,
+        line_threshold: 10,
+        block_threshold: 5,
+        verbose: false,
+        files: similar_matches_files(),
+        reporting_mode: ReportingMode::Json,
+    };
+
+    let matches = JsonRoot::from(get_all_matches(&args));
+    let expected: JsonRoot = serde_json::from_str(
+        &read_to_string("tests/expected/similar_matches_in_1_group.json").unwrap(),
+    )
+    .unwrap();
 
     assert_eq!(matches, expected);
 }
