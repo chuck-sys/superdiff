@@ -48,6 +48,58 @@ fn get_max_block_size(comp: &ComparisonFn, f1: &CompFile, f2: &CompFile) -> usiz
     }
 }
 
+/// Add or remove entries from lookup and matches based on given pair of matches.
+///
+/// There are 4 situations that we prepare for.
+///
+/// 1. **The pair of matches both exist in the same bucket.** We don't need to do anything.
+/// 2. **The pair of matches both exist in different buckets.** We combine both buckets.
+/// 3. **One of the pair of matches exist in a bucket.** We put the other one in that bucket.
+/// 4. **None of the matches exist in any bucket.** We put one of them in a bucket labelled with
+///    the other.
+fn update_matches(
+    (a, b): (Match, Match),
+    (where_is_match, matches_hash): (&mut MatchesLookup, &mut Matches),
+) {
+    let mut where_is_match_to_insert = Vec::new();
+    let (refa, refb) = (where_is_match.0.get(&a), where_is_match.0.get(&b));
+    match (refa, refb, &a, &b) {
+        (Some(refa), Some(refb), _, _) if refa != refb => {
+            // Reassign all of refb references to refa
+            let mut refb_v = matches_hash.0.remove(refb).unwrap();
+            refb_v.push(refb.clone());
+            for block in &refb_v {
+                where_is_match_to_insert.push((block.clone(), refa.clone()));
+            }
+
+            // Append all of the refb into refa's bucket
+            matches_hash
+                .0
+                .entry(refa.clone())
+                .and_modify(|v| v.append(&mut refb_v));
+        }
+        (Some(refblock), None, _, b) | (None, Some(refblock), b, _) => {
+            matches_hash
+                .0
+                .entry(refblock.clone())
+                .and_modify(|v| v.push(b.clone()));
+
+            where_is_match_to_insert.push((b.clone(), refblock.clone()));
+        }
+        (None, None, a, b) => {
+            matches_hash.0.insert(b.clone(), vec![a.clone()]);
+
+            where_is_match_to_insert.push((a.clone(), b.clone()));
+            where_is_match_to_insert.push((b.clone(), b.clone()));
+        }
+        _ => {}
+    }
+
+    for (key, val) in where_is_match_to_insert {
+        where_is_match.0.insert(key, val);
+    }
+}
+
 fn get_matches_from_2_files(
     args: &Cli,
     (mut where_is_match, mut matches_hash): (MatchesLookup, Matches),
@@ -77,48 +129,8 @@ fn get_matches_from_2_files(
                     continue;
                 }
 
-                let (original_block, matching_block) =
-                    Match::from_compfiles(&f1, &f2, block_length);
-                let mut where_is_match_to_insert = Vec::new();
-                let (refa, refb) = (
-                    where_is_match.0.get(&original_block),
-                    where_is_match.0.get(&matching_block),
-                );
-                match (refa, refb, &original_block, &matching_block) {
-                    (Some(refa), Some(refb), _, _) if refa != refb => {
-                        // Reassign all of refb references to refa
-                        let mut refb_v = matches_hash.0.remove(refb).unwrap();
-                        refb_v.push(refb.clone());
-                        for block in &refb_v {
-                            where_is_match_to_insert.push((block.clone(), refa.clone()));
-                        }
-
-                        // Append all of the refb into refa's bucket
-                        matches_hash
-                            .0
-                            .entry(refa.clone())
-                            .and_modify(|v| v.append(&mut refb_v));
-                    }
-                    (Some(refblock), None, _, b) | (None, Some(refblock), b, _) => {
-                        matches_hash
-                            .0
-                            .entry(refblock.clone())
-                            .and_modify(|v| v.push(b.clone()));
-
-                        where_is_match_to_insert.push((b.clone(), refblock.clone()));
-                    }
-                    (None, None, a, b) => {
-                        matches_hash.0.insert(b.clone(), vec![a.clone()]);
-
-                        where_is_match_to_insert.push((a.clone(), b.clone()));
-                        where_is_match_to_insert.push((b.clone(), b.clone()));
-                    }
-                    _ => {}
-                }
-
-                for (key, val) in where_is_match_to_insert {
-                    where_is_match.0.insert(key, val);
-                }
+                let matches = Match::from_compfiles(&f1, &f2, block_length);
+                update_matches(matches, (&mut where_is_match, &mut matches_hash));
 
                 f2.start += block_length;
                 max_block_length = std::cmp::max(max_block_length, block_length);
