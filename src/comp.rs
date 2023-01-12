@@ -2,7 +2,6 @@ use crate::cli::Cli;
 use crate::printer;
 use crate::types::{CompFile, ComparisonFn, FileCache, Match, Matches, MatchesLookup};
 
-use itertools::Itertools;
 use std::collections::HashMap;
 
 const INSERTION_COST: usize = 1;
@@ -119,20 +118,20 @@ pub fn get_all_matches(args: &Cli) -> Matches {
     let mut where_is_match = MatchesLookup(HashMap::new());
     let mut matches_hash = Matches(HashMap::new());
     let comp = comparison_lambda(args);
+    let mut finished_comparisons = 0;
 
-    for (i, combo) in args
-        .files
-        .iter()
-        .combinations_with_replacement(2)
-        .enumerate()
-    {
-        if let Some((f1, f2)) = CompFile::from_files(combo[0], combo[1], &mut filecache) {
-            (where_is_match, matches_hash) =
-                get_matches_from_2_files(args, (where_is_match, matches_hash), &comp, (f1, f2));
+    for i in 0..args.files.len() {
+        for j in i..args.files.len() {
+            if let Some((f1, f2)) = CompFile::from_files(&args.files[i], &args.files[j], &mut filecache) {
+                (where_is_match, matches_hash) =
+                    get_matches_from_2_files(args, (where_is_match, matches_hash), &comp, (f1, f2));
 
-            printer::done_comparison(args, i + 1);
-        } else {
-            printer::skip_comparison(args, combo[0], combo[1]);
+                finished_comparisons += 1;
+                printer::done_comparison(args, finished_comparisons);
+            } else {
+                finished_comparisons += 1;
+                printer::skip_comparison(args, &args.files[i], &args.files[j]);
+            }
         }
     }
 
