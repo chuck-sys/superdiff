@@ -253,7 +253,7 @@ impl CompFile {
             (Some(_), None) | (None, None) => {
                 if let Ok(lines) = get_lines_from_file(f2) {
                     cache.insert(f2.clone(), lines);
-                    CompFile::from_files(f1, f2, cache)
+                    CompFile::from_files(f2, f1, cache)
                 } else {
                     None
                 }
