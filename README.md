@@ -241,6 +241,8 @@ Version | Test name | Params | Time
 ---|---|---|---
 2.0.3 | TerrariaClone | `-b 5 -t 5 json` | 40.284s
 2.0.3 | TerrariaClone | `-b 5 json` | 0.489s
+2.1.2 | TerrariaClone | `-b 5 -t 5 json` | 27.876s
+2.1.2 | TerrariaClone | `-b 5 json` | 0.473s
 
 ## In the works
 
