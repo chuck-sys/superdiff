@@ -168,6 +168,8 @@ pub fn get_all_matches(args: &Cli) -> Matches {
                 printer::skip_comparison(args, &args.files[i], &args.files[j]);
             }
         }
+
+        filecache.remove(&args.files[i]);
     }
 
     matches_hash
