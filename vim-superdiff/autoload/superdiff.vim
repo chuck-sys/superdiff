@@ -16,6 +16,8 @@ function! superdiff#unload()
     let s:json = {}
     let s:json_loaded = v:false
 
+    call sign_unplace('superdiff', { 'buffer': bufnr })
+
     echon 'superdiff: file unloaded from memory'
 endfunction
 
@@ -42,9 +44,7 @@ function! superdiff#query_local_matches() abort
     call sort(loclist, {i1, i2 -> i1.lnum - i2.lnum})
     call setloclist(bufnr, loclist)
 
-    if !g:superdiff_suppress_lopen
-        lopen
-    endif
+    lopen
 endfunction
 
 function! superdiff#query_matches()
@@ -85,9 +85,7 @@ function! superdiff#query_matches()
     call uniq(loclist)
     call setloclist(bufnr, loclist)
 
-    if !g:superdiff_suppress_lopen
-        lopen
-    endif
+    lopen
 endfunction
 
 function! superdiff#hl_matches()

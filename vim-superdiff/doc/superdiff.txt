@@ -45,8 +45,7 @@ COMMANDS                                                *superdiff-commands*
 
         Populate location list with all matching blocks from the current file.
         If |g:superdiff_hl_on_call_local| is `1`, also highlights the
-        lines that contain matching blocks in the gutter. If
-        |g:superdiff_suppress_lopen| is `1`, does not open the location list.
+        lines that contain matching blocks in the gutter.
 
         You can navigate through the matches using |:lnext|, |:lprev|, and
         other |location-list| functions.
@@ -90,11 +89,5 @@ g:superdiff_loctext_maxwidth                            *g:superdiff_loctext_max
         Max width of the line of text in |setloclist()| before truncation.
 
         Default: `60`
-
-g:superdiff_suppress_lopen                               *g:superdiff_suppress_lopen*
-
-        Whether or not to call |:lopen| after |:SDLocal| or |:SDQuery|.
-
-        Default: `1`
 
  vim:et:ft=help:norl:

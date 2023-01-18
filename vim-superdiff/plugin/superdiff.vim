@@ -1,6 +1,6 @@
 " superdiff.vim - Navigate around the JSON reports of the superdiff script
 " Maintainer: Cheuk Yin Ng <https://cheuksblog.ca/>
-" Version: 1.0
+" Version: 1.1
 
 if exists('g:loaded_superdiff')
     finish
@@ -21,10 +21,6 @@ endif
 
 if !exists('g:superdiff_hl_on_call_local')
     let g:superdiff_hl_on_call_local = 1
-endif
-
-if !exists('g:superdiff_suppress_lopen')
-    let g:superdiff_suppress_lopen = 1
 endif
 
 sign define SuperdiffMatch numhl=Match numhl=ErrorMsg
