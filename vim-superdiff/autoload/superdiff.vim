@@ -16,7 +16,7 @@ function! superdiff#unload()
     let s:json = {}
     let s:json_loaded = v:false
 
-    call sign_unplace('superdiff', { 'buffer': bufnr })
+    call sign_unplace('superdiff')
 
     echon 'superdiff: file unloaded from memory'
 endfunction
