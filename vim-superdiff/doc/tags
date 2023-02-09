@@ -1,0 +1,14 @@
+:SDHLLocal	superdiff.txt	/*:SDHLLocal*
+:SDLoad	superdiff.txt	/*:SDLoad*
+:SDLocal	superdiff.txt	/*:SDLocal*
+:SDQuery	superdiff.txt	/*:SDQuery*
+:SDUnHL	superdiff.txt	/*:SDUnHL*
+g:loaded_superdiff	superdiff.txt	/*g:loaded_superdiff*
+g:superdiff_hl_on_call_local	superdiff.txt	/*g:superdiff_hl_on_call_local*
+g:superdiff_loctext_maxwidth	superdiff.txt	/*g:superdiff_loctext_maxwidth*
+superdiff	superdiff.txt	/*superdiff*
+superdiff-commands	superdiff.txt	/*superdiff-commands*
+superdiff-options	superdiff.txt	/*superdiff-options*
+superdiff-terms	superdiff.txt	/*superdiff-terms*
+superdiff-workflow	superdiff.txt	/*superdiff-workflow*
+superdiff.txt	superdiff.txt	/*superdiff.txt*
