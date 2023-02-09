@@ -1,6 +1,6 @@
 use crate::cli::Cli;
 use crate::printer;
-use crate::types::{CompFile, ComparisonFn, FileCache, Match, Matches, MatchesLookup};
+use crate::types::{CompFile, ComparisonFn, Match, Matches, MatchesLookup};
 
 use std::sync::mpsc;
 
@@ -142,36 +142,6 @@ pub fn get_matches_from_2_files(
         f1.start += max_block_length;
     }
 }
-
-/// Get all groups of matches in the given files.
-// pub fn get_all_matches(args: &Cli) -> Matches {
-//     let mut filecache = FileCache::new();
-//     let mut where_is_match = MatchesLookup(HashMap::new());
-//     let mut matches_hash = Matches(HashMap::new());
-//     let comp = comparison_lambda(args);
-//     let mut finished_comparisons = 0;
-
-//     for i in 0..args.files.len() {
-//         for j in i..args.files.len() {
-//             if let Some((f1, f2)) =
-//                 CompFile::from_files(&args.files[i], &args.files[j], &mut filecache)
-//             {
-//                 (where_is_match, matches_hash) =
-//                     get_matches_from_2_files(args, (where_is_match, matches_hash), &comp, (f1, f2));
-
-//                 finished_comparisons += 1;
-//                 printer::done_comparison(args, finished_comparisons);
-//             } else {
-//                 finished_comparisons += 1;
-//                 printer::skip_comparison(args, &args.files[i], &args.files[j]);
-//             }
-//         }
-
-//         filecache.remove(&args.files[i]);
-//     }
-
-//     matches_hash
-// }
 
 /// Make a `Vec<char>`.
 ///
