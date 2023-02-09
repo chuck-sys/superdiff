@@ -1,6 +1,6 @@
 use superdiff::cli::{Cli, ReportingMode};
-use superdiff::comp::get_all_matches;
 use superdiff::types::JsonRoot;
+use superdiff::threadpool::ThreadPool;
 
 use std::fs::read_to_string;
 use std::path::PathBuf;
@@ -52,9 +52,11 @@ fn it_outputs_correct_matches_for_terraria_clone() {
         verbose: true,
         files: terraria_clone_files(),
         reporting_mode: ReportingMode::Json,
+        worker_threads: 4,
     };
 
-    let matches = JsonRoot::from(get_all_matches(&args));
+    let mut pool = ThreadPool::from(args);
+    let matches = pool.run_and_get_results();
     let expected: JsonRoot =
         serde_json::from_str(&read_to_string("tests/expected/terraria_clone_eq_b20.json").unwrap())
             .unwrap();
@@ -71,9 +73,11 @@ fn it_puts_all_matches_in_same_group() {
         verbose: false,
         files: similar_matches_files(),
         reporting_mode: ReportingMode::Json,
+        worker_threads: 1,
     };
 
-    let matches = JsonRoot::from(get_all_matches(&args));
+    let mut pool = ThreadPool::from(args);
+    let matches = pool.run_and_get_results();
     let expected: JsonRoot = serde_json::from_str(
         &read_to_string("tests/expected/similar_matches_in_1_group.json").unwrap(),
     )
@@ -91,6 +95,7 @@ fn it_could_probably_check_stdin() {
         verbose: true,
         files: vec![],
         reporting_mode: ReportingMode::Json,
+        worker_threads: 1,
     };
 
     assert!(args.files_from_stdin());

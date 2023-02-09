@@ -8,7 +8,8 @@ fn main() {
     }
     args.print();
 
-    let matches = types::JsonRoot::from(comp::get_all_matches(&args));
+    let mut pool = threadpool::ThreadPool::from(args.clone());
+    let matches = pool.run_and_get_results();
 
     printer::matches(&args, &matches);
     printer::conclusion(&args, &matches);

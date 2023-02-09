@@ -11,7 +11,7 @@ pub enum ReportingMode {
     Json,
 }
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Levenshtein distance threshold (0 uses string comparison)
@@ -29,6 +29,10 @@ pub struct Cli {
     /// Set to increase the details that are output
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
+
+    /// Number of worker threads to spawn
+    #[arg(long, default_value_t = 1)]
+    pub worker_threads: usize,
 
     /// Files to find the code blocks (leave empty to read from stdin)
     pub files: Vec<PathBuf>,

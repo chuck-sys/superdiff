@@ -57,8 +57,8 @@ pub struct JsonRoot {
     pub matches: Vec<JsonMatch>,
 }
 
-impl From<Match> for JsonBlockInfo {
-    fn from(m: Match) -> Self {
+impl From<&Match> for JsonBlockInfo {
+    fn from(m: &Match) -> Self {
         Self {
             starting_line: m.line,
             block_length: m.size,
@@ -91,8 +91,8 @@ impl PartialEq for JsonMatch {
     }
 }
 
-impl From<(Match, Vec<Match>)> for JsonMatch {
-    fn from((initial_match, other_matches): (Match, Vec<Match>)) -> Self {
+impl From<(&Match, &Vec<Match>)> for JsonMatch {
+    fn from((initial_match, other_matches): (&Match, &Vec<Match>)) -> Self {
         let mut blocks = HashMap::new();
         let mut files = HashMap::new();
         files.insert(initial_match.file.clone(), JsonFileInfo { count_blocks: 1 });
@@ -109,7 +109,7 @@ impl From<(Match, Vec<Match>)> for JsonMatch {
                 .or_insert(JsonFileInfo { count_blocks: 1 });
             blocks
                 .entry(f)
-                .and_modify(|v| v.push(JsonBlockInfo::from(m.clone())))
+                .and_modify(|v| v.push(JsonBlockInfo::from(m)))
                 .or_insert(vec![JsonBlockInfo::from(m)]);
         }
 
@@ -139,10 +139,10 @@ impl fmt::Display for JsonMatch {
     }
 }
 
-impl From<Matches> for JsonRoot {
-    fn from(m: Matches) -> Self {
+impl From<&Matches> for JsonRoot {
+    fn from(m: &Matches) -> Self {
         let version = clap::crate_version!().to_owned();
-        let matches: Vec<JsonMatch> = m.0.into_iter().map(JsonMatch::from).collect();
+        let matches: Vec<JsonMatch> = m.0.iter().map(JsonMatch::from).collect();
         let jm_files = matches.iter().map(|jm| jm.files.clone());
         let mut files: HashMap<PathBuf, JsonFileInfo> = HashMap::new();
 
@@ -235,29 +235,21 @@ impl CompFile {
         &self.lines[self.start]
     }
 
-    pub fn from_files(f1: &PathBuf, f2: &PathBuf, cache: &mut FileCache) -> Option<(Self, Self)> {
-        match (cache.get(f1), cache.get(f2)) {
-            (Some(lines1), Some(lines2)) => Some((
+    pub fn from_files(f1: &PathBuf, f2: &PathBuf) -> Option<(Self, Self)> {
+        match (get_lines_from_file(f1), get_lines_from_file(f2)) {
+            (Ok(lines1), Ok(lines2)) => Some((
                 Self {
                     file: f1.clone(),
-                    lines: lines1.clone(),
+                    lines: lines1,
                     start: 0,
                 },
                 Self {
                     file: f2.clone(),
-                    lines: lines2.clone(),
+                    lines: lines2,
                     start: 0,
                 },
             )),
-            (None, Some(_)) => CompFile::from_files(f2, f1, cache),
-            (Some(_), None) | (None, None) => {
-                if let Ok(lines) = get_lines_from_file(f2) {
-                    cache.insert(f2.clone(), lines);
-                    CompFile::from_files(f2, f1, cache)
-                } else {
-                    None
-                }
-            }
+            _ => None,
         }
     }
 }

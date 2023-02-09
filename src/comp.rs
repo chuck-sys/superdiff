@@ -2,7 +2,7 @@ use crate::cli::Cli;
 use crate::printer;
 use crate::types::{CompFile, ComparisonFn, FileCache, Match, Matches, MatchesLookup};
 
-use std::collections::HashMap;
+use std::sync::mpsc;
 
 const INSERTION_COST: usize = 1;
 const DELETION_COST: usize = 1;
@@ -57,7 +57,7 @@ fn get_max_block_size(comp: &ComparisonFn, f1: &CompFile, f2: &CompFile) -> usiz
 /// 3. **One of the pair of matches exist in a bucket.** We put the other one in that bucket.
 /// 4. **None of the matches exist in any bucket.** We put one of them in a bucket labelled with
 ///    the other.
-fn update_matches(
+pub fn update_matches(
     (a, b): (Match, Match),
     (where_is_match, matches_hash): (&mut MatchesLookup, &mut Matches),
 ) {
@@ -100,12 +100,12 @@ fn update_matches(
     }
 }
 
-fn get_matches_from_2_files(
+pub fn get_matches_from_2_files(
     args: &Cli,
-    (mut where_is_match, mut matches_hash): (MatchesLookup, Matches),
+    tx: &mpsc::Sender<(Match, Match)>,
     comp: &ComparisonFn,
     (mut f1, mut f2): (CompFile, CompFile),
-) -> (MatchesLookup, Matches) {
+) {
     f1.start = 0;
 
     while f1.start < f1.lines.len() {
@@ -130,7 +130,7 @@ fn get_matches_from_2_files(
                 }
 
                 let matches = Match::from_compfiles(&f1, &f2, block_length);
-                update_matches(matches, (&mut where_is_match, &mut matches_hash));
+                tx.send(matches).unwrap_or(());
 
                 f2.start += block_length;
                 max_block_length = std::cmp::max(max_block_length, block_length);
@@ -141,39 +141,37 @@ fn get_matches_from_2_files(
 
         f1.start += max_block_length;
     }
-
-    (where_is_match, matches_hash)
 }
 
 /// Get all groups of matches in the given files.
-pub fn get_all_matches(args: &Cli) -> Matches {
-    let mut filecache = FileCache::new();
-    let mut where_is_match = MatchesLookup(HashMap::new());
-    let mut matches_hash = Matches(HashMap::new());
-    let comp = comparison_lambda(args);
-    let mut finished_comparisons = 0;
+// pub fn get_all_matches(args: &Cli) -> Matches {
+//     let mut filecache = FileCache::new();
+//     let mut where_is_match = MatchesLookup(HashMap::new());
+//     let mut matches_hash = Matches(HashMap::new());
+//     let comp = comparison_lambda(args);
+//     let mut finished_comparisons = 0;
 
-    for i in 0..args.files.len() {
-        for j in i..args.files.len() {
-            if let Some((f1, f2)) =
-                CompFile::from_files(&args.files[i], &args.files[j], &mut filecache)
-            {
-                (where_is_match, matches_hash) =
-                    get_matches_from_2_files(args, (where_is_match, matches_hash), &comp, (f1, f2));
+//     for i in 0..args.files.len() {
+//         for j in i..args.files.len() {
+//             if let Some((f1, f2)) =
+//                 CompFile::from_files(&args.files[i], &args.files[j], &mut filecache)
+//             {
+//                 (where_is_match, matches_hash) =
+//                     get_matches_from_2_files(args, (where_is_match, matches_hash), &comp, (f1, f2));
 
-                finished_comparisons += 1;
-                printer::done_comparison(args, finished_comparisons);
-            } else {
-                finished_comparisons += 1;
-                printer::skip_comparison(args, &args.files[i], &args.files[j]);
-            }
-        }
+//                 finished_comparisons += 1;
+//                 printer::done_comparison(args, finished_comparisons);
+//             } else {
+//                 finished_comparisons += 1;
+//                 printer::skip_comparison(args, &args.files[i], &args.files[j]);
+//             }
+//         }
 
-        filecache.remove(&args.files[i]);
-    }
+//         filecache.remove(&args.files[i]);
+//     }
 
-    matches_hash
-}
+//     matches_hash
+// }
 
 /// Make a `Vec<char>`.
 ///
