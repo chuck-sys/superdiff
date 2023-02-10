@@ -1,5 +1,4 @@
 use crate::cli::Cli;
-use crate::printer;
 use crate::types::{CompFile, ComparisonFn, Match, Matches, MatchesLookup};
 
 use std::sync::mpsc;
@@ -109,8 +108,6 @@ pub fn get_matches_from_2_files(
     f1.start = 0;
 
     while f1.start < f1.lines.len() {
-        printer::now_comparing(args, &f1, &f2);
-
         // Don't consider line lengths below the threshold
         if f1.current_line().len() < args.line_threshold {
             f1.start += 1;
