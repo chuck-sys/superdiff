@@ -31,6 +31,12 @@ pub struct Cli {
     pub verbose: bool,
 
     /// Number of worker threads to spawn
+    ///
+    /// Comparisons between files are distributed evenly across all worker threads. This may not
+    /// result in good caching efficiency because there is a possibility that all of the
+    /// comparisons are on different files. It probably all comes down to your operating system.
+    ///
+    /// Thus, this option doesn't do anything substantial if you are only working with 1 file.
     #[arg(long, default_value_t = 1)]
     pub worker_threads: usize,
 
@@ -68,10 +74,6 @@ impl Cli {
             return;
         }
 
-        if self.reporting_mode != ReportingMode::Text {
-            return;
-        }
-
         eprint!("{} file(s)", self.files.len());
         if self.files.len() <= 10 {
             eprintln!(" {:?}", &self.files);
@@ -79,6 +81,7 @@ impl Cli {
             eprintln!(" {:?}...", &self.files[..10]);
         }
 
+        eprintln!("Worker threads: {}", self.worker_threads);
         eprintln!("Verbosity (-v): {}", self.verbose);
         eprintln!(
             "Comparison threshold (-t): {} ({})",
