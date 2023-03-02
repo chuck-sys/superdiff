@@ -26,13 +26,6 @@ pub fn spawn_processing_text(args: &Cli, rx: mpsc::Receiver<bool>) {
     });
 }
 
-pub fn done_comparison(args: &Cli, nth: usize) {
-    if args.verbose && args.reporting_mode == ReportingMode::Text {
-        let total = combinations(args.files.len(), 2) + args.files.len();
-        eprintln!("...done {nth}/{total}");
-    }
-}
-
 pub fn matches(args: &Cli, matches: &JsonRoot) {
     match args.reporting_mode {
         ReportingMode::Json => {
