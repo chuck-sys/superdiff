@@ -14,21 +14,22 @@ If so, this might be the tool for you!
 - Fast enough (00:01:12 for a 17k LOC with block size 10 and Levenshtein threshold 10)
 - Can check for duplicate code across multiple files
 - Vim integration!
+- Multithreaded
 
 ## Limitations
 
 - Not instantaneous for large files
-- Single-threaded
+- Multithreading only applies for multiple files (no difference when running on a single file)
 
 ## Short examples
 
 ```console
-$ superdiff -l 1 -b 7 examples/really-bad-code.py
+$ superdiff -l 1 -b 5 examples/really-bad-code.py
 === MATCH ===
 File: examples/really-bad-code.py
 Lines: [5, 11]
 Size: 5
-$ find src vim-superdiff -type f | superdiff -l 1 -b 7
+$ find src vim-superdiff -type f | superdiff -l 1 -b 7 --worker-threads 4
 === MATCH ===
 File: src/types.rs
 Lines: [87, 185]
@@ -36,12 +37,7 @@ Size: 7
 
 === MATCH ===
 File: vim-superdiff/autoload/superdiff.vim
-Lines: [138, 154]
-Size: 7
-
-=== MATCH ===
-File: vim-superdiff/autoload/superdiff.vim
-Lines: [43, 86]
+Lines: [136, 152]
 Size: 7
 ```
 
@@ -97,15 +93,9 @@ You have a feeling that it might be bad, so you use the tool.
 
 ```console
 $ superdiff -b 4 examples/really-bad-code.py
-1 file(s) ["examples/really-bad-code.py"]
-Verbosity (-v): true
-Comparison threshold (-t): 0 (Strict equality)
-Minimum length of first line before block consideration (-l): 1
-Minimum length of block before consideration (-b): 4
-Now comparing "examples/really-bad-code.py" (   37/   38)...done 1 out of 1
 === MATCH ===
 File: "examples/really-bad-code.py"
-Lines: [4, 10]
+Lines: [5, 11]
 Size: 5
 
 A total of 1 unique match(es) were found in the 1 file(s).
@@ -116,23 +106,15 @@ copies, but are similar enough.
 
 ```console
 $ superdiff -b 4 -t 5 examples/really-bad-code.py
-1 file(s) ["examples/really-bad-code.py"]
-Verbosity (-v): true
-Comparison threshold (-t): 5 (Levenshtein distance)
-Minimum length of first line before block consideration (-l): 1
-Minimum length of block before consideration (-b): 4
-Now comparing "examples/really-bad-code.py" (   37/   38)...done 1 out of 1
 === MATCH ===
 File: "examples/really-bad-code.py"
-Lines: [15, 25]
+Lines: [16, 26]
 Size: 10
 
 === MATCH ===
 File: "examples/really-bad-code.py"
-Lines: [4, 10]
+Lines: [5, 11]
 Size: 5
-
-A total of 2 unique match(es) were found in the 1 file(s).
 ```
 
 Huh, apparently there is a duplicate function that are pretty similar! And now (assuming that the output
@@ -143,7 +125,6 @@ duplicate code, so you do the following:
 $ superdiff --reporting-mode json -b 5 -t 5 examples/really-bad-code.py > output.json
 $ cat output.json | jq
 {
-  "version": "2.0.2",
   "files": {
     "examples/really-bad-code.py": {
       "count_blocks": 4
@@ -151,44 +132,45 @@ $ cat output.json | jq
   },
   "matches": [
     {
+      "blocks": {
+        "examples/really-bad-code.py": [
+          {
+            "block_length": 5,
+            "starting_line": 11
+          },
+          {
+            "block_length": 5,
+            "starting_line": 5
+          }
+        ]
+      },
       "files": {
         "examples/really-bad-code.py": {
           "count_blocks": 2
         }
-      },
-      "blocks": {
-        "examples/really-bad-code.py": [
-          {
-            "starting_line": 5,
-            "block_length": 5
-          },
-          {
-            "starting_line": 11,
-            "block_length": 5
-          }
-        ]
       }
     },
     {
+      "blocks": {
+        "examples/really-bad-code.py": [
+          {
+            "block_length": 10,
+            "starting_line": 26
+          },
+          {
+            "block_length": 10,
+            "starting_line": 16
+          }
+        ]
+      },
       "files": {
         "examples/really-bad-code.py": {
           "count_blocks": 2
         }
-      },
-      "blocks": {
-        "examples/really-bad-code.py": [
-          {
-            "starting_line": 16,
-            "block_length": 10
-          },
-          {
-            "starting_line": 26,
-            "block_length": 10
-          }
-        ]
       }
     }
-  ]
+  ],
+  "version": "2.1.2"
 }
 $ cat output.json | jq '.matches | map(select((.blocks."examples/really-bad-code.py" | any(.starting_line <= 30 and .starting_line + .block_length >= 30))))'
 [
@@ -243,7 +225,5 @@ Version | Test name | Params | Time
 2.0.3 | TerrariaClone | `-b 5 json` | 0.489s
 2.1.2 | TerrariaClone | `-b 5 -t 5 json` | 27.876s
 2.1.2 | TerrariaClone | `-b 5 json` | 0.473s
-
-## In the works
-
-None at the moment.
+2.2.0 | TerrariaClone | `-b 5 -t 5 --worker-threads 4 json` | 13.409s
+2.2.0 | TerrariaClone | `-b 5 --worker-threads 4 json` | 0.348s
