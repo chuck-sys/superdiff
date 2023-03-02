@@ -8,6 +8,8 @@ pub enum ReportingMode {
     #[default]
     Text,
     /// As a list of JSON objects
+    ///
+    /// Can be piped into `jq` for querying or loaded into `vim` with the plugin.
     Json,
 }
 
@@ -19,14 +21,24 @@ pub struct Cli {
     pub lev_threshold: usize,
 
     /// Length of line before initial consideration
+    ///
+    /// If the length of the line does not reach this threshold, skip over it. For example, if you
+    /// don't want a match to start on an empty line, use a positive integer. If you want the match
+    /// to not start on lines that only have a single curly brace, use a positive integer that is
+    /// greater than 1.
+    ///
+    /// Ignores whitespace.
     #[arg(short, long, default_value_t = 1)]
     pub line_threshold: usize,
 
-    /// Length of block (cluster of lines) before making comparisons
+    /// Minimum length of a matching block (cluster of lines)
     #[arg(short, long, default_value_t = 10)]
     pub block_threshold: usize,
 
     /// Set to increase the details that are output
+    ///
+    /// Output preamble on the command line options that are specified, as well as a progress bar.
+    /// Also output a conclusion at the end.
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
 
