@@ -16,3 +16,10 @@ keywords = ["code-analysis", "duplicate-finding"]
 clap = { version = "4.0", features = ["derive", "cargo"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[profile.release]
+# size optimizations https://github.com/johnthagen/min-sized-rust
+strip = true
+lto = true
+codegen-units = 1
+panic = 'abort'
